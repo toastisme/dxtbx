@@ -189,6 +189,7 @@ namespace dxtbx { namespace model {
     }
 
     double get_wavelength() const {
+      DXTBX_ASSERT(wavelength_ > 0.0);
       return wavelength_;
     }
 
