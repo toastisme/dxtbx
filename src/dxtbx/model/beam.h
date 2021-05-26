@@ -30,42 +30,9 @@ namespace dxtbx { namespace model {
     virtual ~BeamBase() {}
 
     virtual vec3<double> get_sample_to_source_direction() const = 0;
-    virtual double get_wavelength() const = 0;
-    virtual double get_divergence() const = 0;
-    // Get the standard deviation of the beam divergence
-    virtual double get_sigma_divergence() const = 0;
-    // Get the wave vector in units of inverse angstroms
-    virtual vec3<double> get_s0() const = 0;
-    virtual vec3<double> get_unit_s0() const = 0;
-    virtual vec3<double> get_polarization_normal() const = 0;
-    virtual double get_polarization_fraction() const = 0;
-    virtual double get_flux() const = 0;
-    virtual double get_transmission() const = 0;
-    virtual std::size_t get_num_scan_points() const = 0;
-    virtual scitbx::af::shared<vec3<double> > get_s0_at_scan_points() const = 0;
-    virtual vec3<double> get_s0_at_scan_point(std::size_t index) const = 0;
-
+    // Set the direction.
     virtual void set_direction(vec3<double> direction) = 0;
-    virtual void set_wavelength(double wavelength) = 0;
-    // Set the wave vector in units of inverse angstroms
-    virtual void set_s0(vec3<double> s0) = 0;
-    virtual void set_unit_s0(vec3<double> unit_s0) = 0;
-    virtual void set_divergence(double divergence) = 0;
-    // Set the standard deviation of the beam divergence
-    virtual void set_sigma_divergence(double sigma_divergence) = 0;
-    virtual void set_polarization_normal(vec3<double> polarization_normal) = 0;
-    virtual void set_polarization_fraction(double polarization_fraction) = 0;
-    virtual void set_flux(double flux) = 0;
-    virtual void set_transmission(double transmission) = 0;
-    virtual void set_s0_at_scan_points(
-      const scitbx::af::const_ref<vec3<double> > &s0) = 0;
-
-    virtual void reset_scan_points() = 0;
-    virtual bool is_similar_to(const BeamBase &rhs,
-                               double wavelength_tolerance,
-                               double direction_tolerance,
-                               double polarization_normal_tolerance,
-                               double polarization_fraction_tolerance) const = 0;
+    //  Rotate the beam about an axis
     virtual void rotate_around_origin(vec3<double> axis, double angle) = 0;
     virtual bool operator!=(const BeamBase &rhs) const = 0;
     virtual bool operator==(const BeamBase &rhs) const = 0;
@@ -294,7 +261,8 @@ namespace dxtbx { namespace model {
       s0_at_scan_points_.clear();
     }
 
-    bool operator==(const BeamBase &rhs) const {
+    /** Check two beam models are (almost) the same */
+    bool operator==(const Beam &rhs) const {
       double eps = 1.0e-6;
 
       // scan-varying model checks
@@ -328,7 +296,10 @@ namespace dxtbx { namespace model {
                   <= eps;
     }
 
-    bool is_similar_to(const BeamBase &rhs,
+    /**
+     * Check if two models are similar
+     */
+    bool is_similar_to(const Beam &rhs,
                        double wavelength_tolerance,
                        double direction_tolerance,
                        double polarization_normal_tolerance,
@@ -365,7 +336,8 @@ namespace dxtbx { namespace model {
                   <= polarization_fraction_tolerance;
     }
 
-    bool operator!=(const BeamBase &rhs) const {
+    /** Check two beam models are not (almost) the same. */
+    bool operator!=(const Beam &rhs) const {
       return !(*this == rhs);
     }
 
