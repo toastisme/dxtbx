@@ -31,11 +31,58 @@ namespace dxtbx { namespace model {
 
     virtual vec3<double> get_sample_to_source_direction() const = 0;
     // Set the direction.
-    virtual void set_direction(vec3<double> direction) = 0;
+    virtual void set_sample_to_source_direction(vec3<double> direction) = 0;
     //  Rotate the beam about an axis
     virtual void rotate_around_origin(vec3<double> axis, double angle) = 0;
     virtual bool operator!=(const BeamBase &rhs) const = 0;
     virtual bool operator==(const BeamBase &rhs) const = 0;
+  };
+
+  class TOFBeam : public BeamBase{
+  public:
+
+    TOFBeam()
+      : direction_(0.0, 0.0, 0.0),
+        sample_to_moderator_distance_(0) {}
+
+    /**
+     * @param direction unit vector from sample to source
+     * @param sample_to_moderator_distance (mm)
+     */
+    TOFBeam(vec3<double> direction, double sample_to_moderator_distance)
+        : direction_(direction),
+          sample_to_moderator_distance_(sample_to_moderator_distance) {}
+
+    virtual ~TOFBeam() {}
+
+    vec3<double> get_sample_to_source_direction() const override {
+      DXTBX_ASSERT(direction_.length() > 0);
+      return direction_;
+    }
+
+    double get_sample_to_moderator_distance() {
+      DXTBX_ASSERT(sample_to_moderator_distance_ > 0);
+      return sample_to_moderator_distance_;
+    }
+
+    void set_sample_to_source_direction(vec3<double> direction) override{
+      DXTBX_ASSERT(direction.length() > 0);
+      direction_ = direction.normalize();
+    }
+
+    void set_sample_to_moderator_distance(float sample_to_moderator_distance){
+      DXTBX_ASSERT(sample_to_moderator_distance > 0);
+      sample_to_moderator_distance_ = sample_to_moderator_distance;
+    }
+
+    void rotate_around_origin(vec3<double> axis, double angle) override {
+      direction_ = direction_.rotate_around_origin(axis, angle);
+    }
+
+  private:
+    vec3<double> direction_;
+    double sample_to_moderator_distance_;
+
   };
 
   /** A class to represent a simple beam. */
@@ -161,8 +208,8 @@ namespace dxtbx { namespace model {
       return sigma_divergence_;
     }
 
-    /** Set the sample to source direction. */
-    void set_direction(vec3<double> direction) {
+    /** Set the direction. */
+    void set_sample_to_source_direction(vec3<double> direction) {
       DXTBX_ASSERT(direction.length() > 0);
       direction_ = direction.normalize();
     }
