@@ -17,12 +17,12 @@ from dxtbx.datablock import DataBlockFactory
 from dxtbx.format.Format import Format
 from dxtbx.imageset import ImageSetFactory
 from dxtbx.model import (
-    Beam,
     Crystal,
     Detector,
     Experiment,
     ExperimentList,
     Goniometer,
+    MonochromaticBeam,
     Scan,
     ScanFactory,
 )
@@ -96,7 +96,7 @@ def test_experiment_list_extend():
 
 def test_experiment_contains():
     # Create a load of models
-    b1 = Beam()
+    b1 = MonochromaticBeam()
     d1 = Detector()
     g1 = Goniometer()
     s1 = Scan()
@@ -115,7 +115,7 @@ def test_experiment_contains():
     assert c1 in e
 
     # Create a load of models that look the same but aren't
-    b2 = Beam()
+    b2 = MonochromaticBeam()
     d2 = Detector()
     g2 = Goniometer()
     s2 = Scan()
@@ -131,14 +131,14 @@ def test_experiment_contains():
 
 def test_experiment_equality():
     # Create a load of models
-    b1 = Beam()
+    b1 = MonochromaticBeam()
     d1 = Detector()
     g1 = Goniometer()
     s1 = Scan()
     c1 = Crystal((1, 0, 0), (0, 1, 0), (0, 0, 1), space_group_symbol="P1")
 
     # Create a load of models that look the same but aren't
-    b2 = Beam()
+    b2 = MonochromaticBeam()
     d2 = Detector()
     g2 = Goniometer()
     s2 = Scan()
@@ -200,7 +200,7 @@ def test_experimentlist_contains(experiment_list):
         assert e.scan in experiment_list
 
     # Create some more models
-    b = Beam()
+    b = MonochromaticBeam()
     d = Detector()
     g = Goniometer()
     s = Scan()
@@ -262,7 +262,7 @@ def test_experimentlist_indices(experiment_list):
     assert list(experiment_list.indices(s[4])) == [0, 4]
 
     # Check some models not in the list
-    assert len(experiment_list.indices(Beam())) == 0
+    assert len(experiment_list.indices(MonochromaticBeam())) == 0
     assert len(experiment_list.indices(Detector())) == 0
     assert len(experiment_list.indices(Goniometer())) == 0
     assert len(experiment_list.indices(Scan())) == 0
@@ -353,9 +353,9 @@ def experiment_list():
     experiments = ExperimentList()
 
     # Create a few beams
-    b1 = Beam()
-    b2 = Beam()
-    b3 = Beam()
+    b1 = MonochromaticBeam()
+    b2 = MonochromaticBeam()
+    b3 = MonochromaticBeam()
 
     # Create a few detectors
     d1 = Detector()
@@ -492,7 +492,7 @@ def test_experimentlist_factory_from_args(monkeypatch, dials_regression):
 
 def test_experimentlist_factory_from_imageset():
     imageset = Format.get_imageset(["filename.cbf"], as_imageset=True)
-    imageset.set_beam(Beam(), 0)
+    imageset.set_beam(MonochromaticBeam(), 0)
     imageset.set_detector(Detector(), 0)
 
     crystal = Crystal((1, 0, 0), (0, 1, 0), (0, 0, 1), space_group_symbol="P1")
@@ -511,7 +511,7 @@ def test_experimentlist_factory_from_sequence():
 
     imageset = Format.get_imageset(
         filenames,
-        beam=Beam(),
+        beam=MonochromaticBeam(),
         detector=Detector(),
         goniometer=Goniometer(),
         scan=Scan((1, 2), (0, 1)),
@@ -536,7 +536,7 @@ def test_experimentlist_factory_from_datablock():
 
     imageset = Format.get_imageset(
         filenames,
-        beam=Beam(),
+        beam=MonochromaticBeam(),
         detector=Detector(),
         goniometer=Goniometer(),
         scan=Scan((1, 2), (0, 1)),
@@ -657,7 +657,7 @@ def test_experimentlist_dumper_dump_empty_sequence(tmp_path):
 
     imageset = Format.get_imageset(
         filenames,
-        beam=Beam((1, 0, 0)),
+        beam=MonochromaticBeam((1, 0, 0)),
         detector=Detector(),
         goniometer=Goniometer(),
         scan=Scan((1, 2), (0.0, 1.0)),
@@ -743,16 +743,26 @@ def test_experimentlist_with_identifiers():
     experiments = ExperimentList()
 
     experiments.append(
-        Experiment(beam=Beam(s0=(0, 0, -1)), detector=Detector(), identifier="bacon")
+        Experiment(
+            beam=MonochromaticBeam(s0=(0, 0, -1)),
+            detector=Detector(),
+            identifier="bacon",
+        )
     )
 
     experiments.append(
-        Experiment(beam=Beam(s0=(0, 0, -1)), detector=Detector(), identifier="sausage")
+        Experiment(
+            beam=MonochromaticBeam(s0=(0, 0, -1)),
+            detector=Detector(),
+            identifier="sausage",
+        )
     )
 
     with pytest.raises(Exception):
         experiments.append(
-            Experiment(beam=Beam(), detector=Detector(), identifier="bacon")
+            Experiment(
+                beam=MonochromaticBeam(), detector=Detector(), identifier="bacon"
+            )
         )
 
     d = experiments.to_dict()
@@ -935,7 +945,7 @@ def test_experimentlist_imagesequence_stills(dials_data):
 
 def test_experimentlist_imagesequence_decode(mocker):
     # These models are shared between experiments
-    beam = Beam(s0=(0, 0, -1))
+    beam = MonochromaticBeam(s0=(0, 0, -1))
     detector = Detector()
     gonio = Goniometer()
 
@@ -1208,7 +1218,7 @@ def test_from_null_sequence():
     filenames = ["template_%2d.cbf" % (i + 1) for i in range(0, 10)]
     sequence = Format.get_imageset(
         filenames,
-        beam=Beam((0, 0, 1)),
+        beam=MonochromaticBeam((0, 0, 1)),
         detector=Detector(),
         goniometer=Goniometer((1, 0, 0)),
         scan=Scan((1, 10), (0, 0.1)),

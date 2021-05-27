@@ -111,7 +111,7 @@ class FormatHDF5Lambda(FormatHDF5):
         """Dummy beam"""
 
         wavelength = 1.0
-        return self._beam_factory.simple(wavelength)
+        return self._beam_factory.simple_monochromatic(wavelength)
 
     def _scan(self):
         """Dummy scan"""

@@ -94,7 +94,7 @@ except ModuleNotFoundError:
     )
 
 __all__ = (
-    "Beam",
+    "MonochromaticBeam",
     "BeamBase",
     "BeamFactory",
     "Crystal",

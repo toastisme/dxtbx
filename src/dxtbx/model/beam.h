@@ -39,9 +39,10 @@ namespace dxtbx { namespace model {
   };
 
   /** A class to represent a simple beam. */
-  class Beam : public BeamBase {
+  class MonochromaticBeam : public BeamBase {
   public:
-    Beam()
+    /** Default constructor: initialise all to zero */
+    MonochromaticBeam()
         : wavelength_(0.0),
           direction_(0.0, 0.0, 1.0),
           divergence_(0.0),
@@ -54,7 +55,7 @@ namespace dxtbx { namespace model {
     /**
      * @param s0 The incident beam vector.
      */
-    Beam(vec3<double> s0)
+    MonochromaticBeam(vec3<double> s0)
         : divergence_(0.0),
           sigma_divergence_(0.0),
           polarization_normal_(0.0, 1.0, 0.0),
@@ -70,7 +71,7 @@ namespace dxtbx { namespace model {
      * @param direction The beam direction vector from sample to source
      * @param wavelength The wavelength of the beam
      */
-    Beam(vec3<double> direction, double wavelength)
+    MonochromaticBeam(vec3<double> direction, double wavelength)
         : wavelength_(wavelength),
           divergence_(0.0),
           sigma_divergence_(0.0),
@@ -87,7 +88,7 @@ namespace dxtbx { namespace model {
      * @param divergence The beam divergence
      * @param sigma_divergence The standard deviation of the beam divergence
      */
-    Beam(vec3<double> s0, double divergence, double sigma_divergence)
+    MonochromaticBeam(vec3<double> s0, double divergence, double sigma_divergence)
         : divergence_(divergence),
           sigma_divergence_(sigma_divergence),
           polarization_normal_(0.0, 1.0, 0.0),
@@ -105,7 +106,7 @@ namespace dxtbx { namespace model {
      * @param divergence The beam divergence
      * @param sigma_divergence The standard deviation of the beam divergence
      */
-    Beam(vec3<double> direction,
+    MonochromaticBeam(vec3<double> direction,
          double wavelength,
          double divergence,
          double sigma_divergence)
@@ -120,17 +121,7 @@ namespace dxtbx { namespace model {
       direction_ = direction.normalize();
     }
 
-    /**
-     * @param direction The beam direction vector from sample to source
-     * @param wavelength The wavelength of the beam
-     * @param divergence The beam divergence
-     * @param sigma_divergence The standard deviation of the beam divergence
-     * @param polarization_normal The polarization plane
-     * @param polarization_fraction The polarization fraction
-     * @param flux The beam flux
-     * @param transmission The beam transmission
-     */
-    Beam(vec3<double> direction,
+    MonochromaticBeam(vec3<double> direction,
          double wavelength,
          double divergence,
          double sigma_divergence,
@@ -149,7 +140,8 @@ namespace dxtbx { namespace model {
       direction_ = direction.normalize();
     }
 
-    virtual ~Beam() {}
+    /** Virtual destructor */
+    virtual ~MonochromaticBeam() {}
 
     vec3<double> get_sample_to_source_direction() const {
       return direction_;
@@ -262,7 +254,7 @@ namespace dxtbx { namespace model {
     }
 
     /** Check two beam models are (almost) the same */
-    bool operator==(const Beam &rhs) const {
+    bool operator==(const MonochromaticBeam &rhs) const {
       double eps = 1.0e-6;
 
       // scan-varying model checks
@@ -299,7 +291,7 @@ namespace dxtbx { namespace model {
     /**
      * Check if two models are similar
      */
-    bool is_similar_to(const Beam &rhs,
+    bool is_similar_to(const MonochromaticBeam &rhs,
                        double wavelength_tolerance,
                        double direction_tolerance,
                        double polarization_normal_tolerance,
@@ -337,7 +329,7 @@ namespace dxtbx { namespace model {
     }
 
     /** Check two beam models are not (almost) the same. */
-    bool operator!=(const Beam &rhs) const {
+    bool operator!=(const MonochromaticBeam &rhs) const {
       return !(*this == rhs);
     }
 
@@ -346,7 +338,7 @@ namespace dxtbx { namespace model {
       polarization_normal_ = polarization_normal_.rotate_around_origin(axis, angle);
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const Beam &b);
+    friend std::ostream &operator<<(std::ostream &os, const MonochromaticBeam &b);
 
   private:
     double wavelength_;
@@ -361,8 +353,8 @@ namespace dxtbx { namespace model {
   };
 
   /** Print beam information */
-  inline std::ostream &operator<<(std::ostream &os, const Beam &b) {
-    os << "Beam:\n";
+  inline std::ostream &operator<<(std::ostream &os, const MonochromaticBeam &b) {
+    os << "MonochromaticBeam:\n";
     os << "    wavelength: " << b.get_wavelength() << "\n";
     os << "    sample to source direction : "
        << b.get_sample_to_source_direction().const_ref() << "\n";
