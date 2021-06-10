@@ -45,7 +45,14 @@ __all__ = (
 )
 
 
-def _expand_template(template: str, indices: Iterable[int]) -> list[str]:
+class ImageSetType(Enum):
+    ImageSet = 1
+    ImageSetLazy = 2
+    ImageSequence = 3
+    TOFImageSet = 4
+
+
+def _expand_template(template: str, indices: Iterable[int]) -> List[str]:
     """Expand a template string to a list of filenames.
 
     Args:
