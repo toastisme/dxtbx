@@ -5,27 +5,16 @@ import boost_adaptbx.boost.python
 import dxtbx.format.image  # noqa: F401, import dependency for unpickling
 import dxtbx.format.Registry
 from dxtbx.sequence_filenames import group_files_by_imageset, template_image_range
-
-try:
-    from .dxtbx_imageset_ext import (
-        ExternalLookup,
-        ExternalLookupItemBool,
-        ExternalLookupItemDouble,
-        ImageGrid,
-        ImageSequence,
-        ImageSet,
-        ImageSetData,
-    )
-except ModuleNotFoundError:
-    from dxtbx_imageset_ext import (  # type: ignore
-        ExternalLookup,
-        ExternalLookupItemBool,
-        ExternalLookupItemDouble,
-        ImageGrid,
-        ImageSequence,
-        ImageSet,
-        ImageSetData,
-    )
+from dxtbx_imageset_ext import (
+    ExternalLookup,
+    ExternalLookupItemBool,
+    ExternalLookupItemDouble,
+    ImageGrid,
+    ImageSequence,
+    ImageSet,
+    ImageSetData,
+    TOFImageSet,
+)
 
 ext = boost_adaptbx.boost.python.import_ext("dxtbx_ext")
 
@@ -37,6 +26,7 @@ __all__ = (
     "ExternalLookupItemDouble",
     "ImageGrid",
     "ImageSet",
+    "TOFImageSet",
     "ImageSetData",
     "ImageSetFactory",
     "ImageSetLazy",
