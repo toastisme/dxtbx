@@ -15,6 +15,7 @@ from dxtbx_imageset_ext import (
     ImageSetBase,
     ImageSetData,
     TOFImageSet,
+    TOFImageSetData,
 )
 
 ext = boost_adaptbx.boost.python.import_ext("dxtbx_ext")
@@ -29,6 +30,7 @@ __all__ = (
     "ImageSet",
     "TOFImageSet",
     "ImageSetData",
+    "TOFImageSetData",
     "ImageSetFactory",
     "ImageSetLazy",
     "ImageSequence",
@@ -192,7 +194,7 @@ class _:
             return [self.reader().paths()[i] for i in self.indices()]
 
 
-class ImageSetLazy(ImageSet):
+class ImageSetLazy(ImageSet, ImageSetBase):
     """
     Lazy ImageSet class that doesn't necessitate setting the models ahead of time.
     Only when a particular model (like detector or beam) for an image is requested,

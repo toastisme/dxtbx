@@ -12,6 +12,7 @@ from dxtbx.imageset import (
     ImageSetLazy,
     ImageSetType,
     TOFImageSet,
+    TOFImageSetData,
 )
 from dxtbx.model import MultiAxisGoniometer
 
@@ -267,14 +268,16 @@ class FormatMultiImage(Format):
             reader = get_reader(cls, filenames, num_images, **format_kwargs)
             vendor = ""
 
+            isd = ImageSetData(
+                reader=reader,
+                masker=None,
+                vendor=vendor,
+                params=format_kwargs,
+                format=cls,
+            )
+
             iset = ImageSetLazy(
-                ImageSetData(
-                    reader=reader,
-                    masker=None,
-                    vendor=vendor,
-                    params=format_kwargs,
-                    format=cls,
-                ),
+                isd,
                 indices=single_file_indices,
             )
             _add_static_mask_to_iset(format_instance, iset)
@@ -297,7 +300,7 @@ class FormatMultiImage(Format):
             if "tof_indices" in format_kwargs:
                 if single_file_indices is not None:
                     iset = TOFImageSet(
-                        ImageSetData(
+                        TOFImageSetData(
                             reader=reader,
                             masker=None,
                             vendor=vendor,
@@ -310,7 +313,7 @@ class FormatMultiImage(Format):
                     )
                 else:
                     iset = TOFImageSet(
-                        ImageSetData(
+                        TOFImageSetData(
                             reader=reader,
                             masker=None,
                             vendor=vendor,
@@ -322,7 +325,7 @@ class FormatMultiImage(Format):
                     )
             else:
                 iset = TOFImageSet(
-                    ImageSetData(
+                    TOFImageSetData(
                         reader=reader,
                         masker=None,
                         vendor=vendor,

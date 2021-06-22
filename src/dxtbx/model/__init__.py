@@ -110,6 +110,7 @@ __all__ = (
     "GoniometerFactory",
     "ImageGrid",
     "ImageSet",
+    "TOFImageSet",
     "ImageSequence",
     "KappaDirection",
     "KappaGoniometer",
