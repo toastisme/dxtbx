@@ -25,6 +25,7 @@ from dxtbx.util import format_float_with_standard_uncertainty
 try:
     from ..dxtbx_model_ext import (
         Beam,
+        MonochromaticBeam,
         BeamBase,
         Crystal,
         CrystalBase,
@@ -46,6 +47,7 @@ try:
         ParallaxCorrectedPxMmStrategy,
         PxMmStrategy,
         Scan,
+        Sequence,
         ScanBase,
         SimplePxMmStrategy,
         Spectrum,
@@ -125,7 +127,7 @@ __all__ = (
     "ProfileModelFactory",
     "PxMmStrategy",
     "Scan",
-    "ScanBase",
+    "Sequence",
     "ScanFactory",
     "SimplePxMmStrategy",
     "Spectrum",
