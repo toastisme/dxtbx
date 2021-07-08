@@ -23,7 +23,7 @@ from dxtbx.datablock import (
 from dxtbx.format.Format import Format
 from dxtbx.format.FormatMultiImage import FormatMultiImage
 from dxtbx.format.image import ImageBool, ImageDouble
-from dxtbx.imageset import ImageGrid, ImageSequence, ImageSet, ImageSetFactory
+from dxtbx.imageset import ImageGrid, ImageSet, ImageSetFactory, RotImageSequence
 from dxtbx.model import (
     BeamFactory,
     CrystalFactory,
@@ -221,7 +221,7 @@ class ExperimentListDict:
         elif imageset_data["__id__"] == "ImageGrid":
             imageset = self._make_grid(imageset_data, format_kwargs=format_kwargs)
         elif (
-            imageset_data["__id__"] == "ImageSequence"
+            imageset_data["__id__"] == "RotImageSequence"
             or imageset_data["__id__"] == "ImageSweep"
         ):
             imageset = self._make_sequence(
@@ -279,7 +279,7 @@ class ExperimentListDict:
             imageset.external_lookup.dy.filename = dy_filename
 
             # Update the imageset models
-            if isinstance(imageset, ImageSequence):
+            if isinstance(imageset, RotImageSequence):
                 imageset.set_beam(beam)
                 imageset.set_detector(detector)
                 imageset.set_goniometer(goniometer)
@@ -578,7 +578,7 @@ class ExperimentListFactory:
         # Now, build experiments from these files. Duplicating the logic of
         # the previous implementation:
         # - FormatMultiImage files each have their own ImageSet
-        # - Every set of images forming a scan goes into its own ImageSequence
+        # - Every set of images forming a scan goes into its own RotImageSequence
         # - Any consecutive still frames that share any metadata with the
         #   previous still fram get collected into one ImageSet
 
@@ -621,7 +621,7 @@ class ExperimentListFactory:
     @staticmethod
     def from_imageset_and_crystal(imageset, crystal, load_models=True):
         """Load an experiment list from an imageset and crystal."""
-        if isinstance(imageset, ImageSequence):
+        if isinstance(imageset, RotImageSequence):
             return ExperimentListFactory.from_sequence_and_crystal(
                 imageset, crystal, load_models
             )
@@ -634,7 +634,7 @@ class ExperimentListFactory:
     def from_sequence_and_crystal(imageset, crystal, load_models=True):
         """Create an experiment list from sequence and crystal."""
 
-        assert isinstance(imageset, ImageSequence)
+        assert isinstance(imageset, RotImageSequence)
 
         experiments = ExperimentList()
 
@@ -1323,13 +1323,10 @@ def _create_imageset(
     return imageset
 
 
-def _create_imagesequence(
-    record: ImageMetadataRecord,
-    format_class: type[Format],
-    format_kwargs: dict | None = None,
-) -> dxtbx.imageset.ImageSequence:
+def _create_imagesequence(record, format_class, format_kwargs=None):
+    # type: (ImageMetadataRecord, Type[Format], Dict) -> dxtbx.imageset.RotImageSequence
     """
-    Create an ImageSequence object from a single rotation data image.
+    Create an RotImageSequence object from a single rotation data image.
 
     Args:
         record: Single-image metadata records to merge into a single imageset

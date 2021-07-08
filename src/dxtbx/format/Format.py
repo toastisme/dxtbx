@@ -326,7 +326,7 @@ class Format:
         if is_tof_imageset(scan, beam, format_instance):
             return ImageSetType.TOFImageSet
         elif is_imagesequence(scan, goniometer, format_instance):
-            return ImageSetType.ImageSequence
+            return ImageSetType.RotImageSequence
         return ImageSetType.ImageSet
 
     @staticmethod
@@ -357,7 +357,12 @@ class Format:
 
         """
         # Import here to avoid cyclic imports
-        from dxtbx.imageset import ImageSequence, ImageSet, ImageSetData, ImageSetType
+        from dxtbx.imageset import (
+            ImageSet,
+            ImageSetData,
+            ImageSetType,
+            RotImageSequence,
+        )
 
         def process_filenames(filenames):
             return [
@@ -416,7 +421,7 @@ class Format:
                 masker = None
 
             # Create the sequence
-            iset = ImageSequence(
+            iset = RotImageSequence(
                 ImageSetData(
                     reader=reader,
                     masker=masker,
@@ -510,7 +515,7 @@ class Format:
                 vendor,
                 format_kwargs,
             )
-        elif imageset_type == ImageSetType.ImageSequence:
+        elif imageset_type == ImageSetType.RotImageSequence:
             iset = create_imagesequence(
                 cls,
                 filenames,

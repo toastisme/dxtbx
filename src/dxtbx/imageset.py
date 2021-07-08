@@ -10,10 +10,10 @@ from dxtbx_imageset_ext import (
     ExternalLookupItemBool,
     ExternalLookupItemDouble,
     ImageGrid,
-    ImageSequence,
     ImageSet,
     ImageSetBase,
     ImageSetData,
+    RotImageSequence,
     TOFImageSet,
     TOFImageSetData,
 )
@@ -33,7 +33,7 @@ __all__ = (
     "TOFImageSetData",
     "ImageSetFactory",
     "ImageSetLazy",
-    "ImageSequence",
+    "RotImageSequence",
     "MemReader",
 )
 
@@ -41,7 +41,7 @@ __all__ = (
 class ImageSetType(Enum):
     ImageSet = 1
     ImageSetLazy = 2
-    ImageSequence = 3
+    RotImageSequence = 3
     TOFImageSet = 4
 
 
@@ -351,8 +351,8 @@ class ImageSetLazy(ImageSet, ImageSetBase):
         return super().get_gain(index)
 
 
-@boost_adaptbx.boost.python.inject_into(ImageSequence)
-class _imagesequence:
+@boost_adaptbx.boost.python.inject_into(RotImageSequence)
+class _:
     def __getitem__(self, item):
         """Get an item from the sequence stream.
 
@@ -677,16 +677,16 @@ class ImageSetFactory:
             goniometer=goniometer,
             scan=scan,
             format_kwargs=format_kwargs,
-            imageset_type=ImageSetType.ImageSequence,
+            imageset_type=ImageSetType.RotImageSequence,
             single_file_indices=list(range(*array_range)),
         )
 
     @staticmethod
     def imageset_from_anyset(imageset):
-        """Create a new ImageSet object from an imageset object. Converts ImageSequence to ImageSet."""
+        """Create a new ImageSet object from an imageset object. Converts RotImageSequence to ImageSet."""
         if isinstance(imageset, ImageSetLazy):
             return ImageSetLazy(imageset.data(), imageset.indices())
-        elif isinstance(imageset, ImageSequence) or isinstance(imageset, ImageSet):
+        elif isinstance(imageset, RotImageSequence) or isinstance(imageset, ImageSet):
             return ImageSet(imageset.data(), imageset.indices())
         else:
             raise ValueError("Unrecognized imageset type: %s" % str(type(imageset)))
