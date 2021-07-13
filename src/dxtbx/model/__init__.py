@@ -19,7 +19,7 @@ from dxtbx.model.crystal import CrystalFactory
 from dxtbx.model.detector import DetectorFactory
 from dxtbx.model.goniometer import GoniometerFactory
 from dxtbx.model.profile import ProfileModelFactory
-from dxtbx.model.scan import ScanFactory
+from dxtbx.model.scan import SequenceFactory
 from dxtbx.util import format_float_with_standard_uncertainty
 
 try:
@@ -135,7 +135,7 @@ __all__ = (
     "Scan",
     "Sequence",
     "TOFSequence",
-    "ScanFactory",
+    "SequenceFactory",
     "SimplePxMmStrategy",
     "Spectrum",
     "VirtualPanel",
@@ -560,7 +560,7 @@ class _experiment:
         self.beam = self.imageset.get_beam(index)
         self.detector = self.imageset.get_detector(index)
         self.goniometer = self.imageset.get_goniometer(index)
-        self.scan = self.imageset.get_scan(index)
+        self.scan = self.imageset.get_sequence(index)
 
 
 @boost_adaptbx.boost.python.inject_into(ExperimentList)

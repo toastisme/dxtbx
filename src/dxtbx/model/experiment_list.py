@@ -32,7 +32,7 @@ from dxtbx.model import (
     ExperimentList,
     GoniometerFactory,
     ProfileModelFactory,
-    ScanFactory,
+    SequenceFactory,
 )
 from dxtbx.sequence_filenames import (
     locate_files_matching_template_string,
@@ -99,7 +99,7 @@ class ExperimentListDict:
                 ("beam", BeamFactory.from_dict),
                 ("detector", DetectorFactory.from_dict),
                 ("goniometer", GoniometerFactory.from_dict),
-                ("scan", ScanFactory.from_dict),
+                ("scan", SequenceFactory.from_dict),
                 ("crystal", CrystalFactory.from_dict),
                 ("profile", ProfileModelFactory.from_dict),
                 ("imageset", lambda x: x),
@@ -641,8 +641,8 @@ class ExperimentListFactory:
         if load_models:
             # if imagesequence is still images, make one experiment for each
             # all referencing into the same image set
-            if imageset.get_scan().is_still():
-                start, end = imageset.get_scan().get_array_range()
+            if imageset.get_sequence().is_still():
+                start, end = imageset.get_sequence().get_array_range()
                 for j in range(start, end):
                     subset = imageset[j : j + 1]
                     experiments.append(
@@ -662,7 +662,7 @@ class ExperimentListFactory:
                         beam=imageset.get_beam(),
                         detector=imageset.get_detector(),
                         goniometer=imageset.get_goniometer(),
-                        scan=imageset.get_scan(),
+                        scan=imageset.get_sequence(),
                         crystal=crystal,
                     )
                 )
@@ -686,7 +686,7 @@ class ExperimentListFactory:
                         beam=imageset.get_beam(i),
                         detector=imageset.get_detector(i),
                         goniometer=imageset.get_goniometer(i),
-                        scan=imageset.get_scan(i),
+                        scan=imageset.get_sequence(i),
                         crystal=crystal,
                     )
                 )
