@@ -192,6 +192,10 @@ class _:
         else:
             return [self.reader().paths()[i] for i in self.indices()]
 
+    @staticmethod
+    def is_sequence(imageset):
+        return type(imageset) in [RotImageSequence, TOFImageSequence]
+
 
 class ImageSetLazy(ImageSet):
     """
