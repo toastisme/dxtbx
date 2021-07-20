@@ -175,7 +175,7 @@ def test_experiment_consistent(dials_data):
     # Create experiment with sequence and defective scan
     scan = sequence.get_scan()
     scan.set_image_range((1, 1))
-    e = Experiment(imageset=sequence, scan=scan)
+    e = Experiment(imageset=sequence, sequence=scan)
     # assert not e.is_consistent()) # FIXME
 
     ## Create experiment with imageset and good scan
@@ -197,7 +197,7 @@ def test_experimentlist_contains(experiment_list):
         assert e.beam in experiment_list
         assert e.detector in experiment_list
         assert e.goniometer in experiment_list
-        assert e.scan in experiment_list
+        assert e.sequence in experiment_list
 
     # Create some more models
     b = MonochromaticBeam()
@@ -231,7 +231,7 @@ def test_experimentlist_indices(experiment_list):
     b = [e.beam for e in experiment_list]
     d = [e.detector for e in experiment_list]
     g = [e.goniometer for e in experiment_list]
-    s = [e.scan for e in experiment_list]
+    s = [e.sequence for e in experiment_list]
 
     # Check indices of beams
     assert list(experiment_list.indices(b[0])) == [0, 4]
@@ -339,7 +339,7 @@ def test_experimentlist_where(experiment_list):
             assert experiment_list[i].goniometer is goniometer
     for scan in experiment_list.scans():
         assert scan is not None
-        for i in experiment_list.where(scan=scan):
+        for i in experiment_list.where(sequence=scan):
             assert experiment_list[i].scan is scan
     for detector in experiment_list.detectors():
         assert detector is not None
@@ -487,7 +487,7 @@ def test_experimentlist_factory_from_args(monkeypatch, dials_regression):
         assert experiment.beam
         assert experiment.detector
         assert experiment.goniometer
-        assert experiment.scan
+        assert experiment.sequence
 
 
 def test_experimentlist_factory_from_imageset():
@@ -514,7 +514,7 @@ def test_experimentlist_factory_from_sequence():
         beam=MonochromaticBeam(),
         detector=Detector(),
         goniometer=Goniometer(),
-        scan=Scan((1, 2), (0, 1)),
+        sequence=Scan((1, 2), (0, 1)),
         as_sequence=True,
     )
 
@@ -527,7 +527,7 @@ def test_experimentlist_factory_from_sequence():
     assert experiments[0].beam
     assert experiments[0].detector is not None
     assert experiments[0].goniometer
-    assert experiments[0].scan
+    assert experiments[0].sequence
     assert experiments[0].crystal
 
 
@@ -539,7 +539,7 @@ def test_experimentlist_factory_from_datablock():
         beam=MonochromaticBeam(),
         detector=Detector(),
         goniometer=Goniometer(),
-        scan=Scan((1, 2), (0, 1)),
+        sequence=Scan((1, 2), (0, 1)),
         as_sequence=True,
     )
 
@@ -555,7 +555,7 @@ def test_experimentlist_factory_from_datablock():
     assert experiments[0].beam
     assert experiments[0].detector is not None
     assert experiments[0].goniometer
-    assert experiments[0].scan
+    assert experiments[0].sequence
     assert experiments[0].crystal
 
 
@@ -660,7 +660,7 @@ def test_experimentlist_dumper_dump_empty_sequence(tmp_path):
         beam=MonochromaticBeam((1, 0, 0)),
         detector=Detector(),
         goniometer=Goniometer(),
-        scan=Scan((1, 2), (0.0, 1.0)),
+        sequence=Scan((1, 2), (0.0, 1.0)),
         as_sequence=True,
     )
 
@@ -847,12 +847,12 @@ def test_experiment_is_still():
     assert experiment.is_still()
     experiment.goniometer = Goniometer()
     assert experiment.is_still()
-    experiment.scan = Scan()
+    experiment.sequence = Scan()
     assert experiment.is_still()
-    experiment.scan = Scan((1, 1000), (0, 0.05))
+    experiment.sequence = Scan((1, 1000), (0, 0.05))
     assert not experiment.is_still()
     # Specifically test the bug from dxtbx#4 triggered by ending on 0°
-    experiment.scan = Scan((1, 1800), (-90, 0.05))
+    experiment.sequence = Scan((1, 1800), (-90, 0.05))
     assert not experiment.is_still()
 
 
@@ -871,7 +871,7 @@ def compare_experiment(exp1, exp2):
         and exp1.beam == exp2.beam
         and exp1.detector == exp2.detector
         and exp1.goniometer == exp2.goniometer
-        and exp1.scan == exp2.scan
+        and exp1.sequence == exp2.sequence
         and exp1.profile == exp2.profile
         and exp1.scaling_model == exp2.scaling_model
         and exp1.identifier == exp2.identifier
@@ -1221,7 +1221,7 @@ def test_from_null_sequence():
         beam=MonochromaticBeam((0, 0, 1)),
         detector=Detector(),
         goniometer=Goniometer((1, 0, 0)),
-        scan=Scan((1, 10), (0, 0.1)),
+        sequence=Scan((1, 10), (0, 0.1)),
     )
 
     # Create the experiments
