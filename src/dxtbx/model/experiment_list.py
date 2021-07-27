@@ -963,7 +963,7 @@ class ImageMetadataRecord:
         self.beam = beam
         self.detector = detector
         self.goniometer = goniometer
-        self.scan = scan
+        self.sequence = scan
         self.template = template
         self.filename = filename
         self.index = index
@@ -1049,13 +1049,13 @@ class ImageMetadataRecord:
         except Exception:
             pass
         try:
-            record.scan = fmt.get_sequence()
+            record.sequence = fmt.get_sequence()
         except Exception:
             pass
 
         # Get the template and index if possible - and only if we've got a
         # recorded oscillation value
-        if record.scan is not None:
+        if record.sequence is not None:
             record.template, record.index = template_regex(record.filename)
 
         return record
@@ -1066,7 +1066,7 @@ class ImageMetadataRecord:
             ("beam", self.beam),
             ("detector", self.detector),
             ("goiometer", self.goniometer),
-            ("scan", self.scan),
+            ("sequence", self.sequence),
             ("template", self.template),
             ("index", self.index),
         ]
@@ -1079,7 +1079,7 @@ class ImageMetadataRecord:
                 self.beam,
                 self.detector,
                 self.goniometer,
-                self.scan,
+                self.sequence,
                 self.template,
                 self.filename,
                 self.index,
@@ -1243,9 +1243,9 @@ def _merge_scans(
             # Attempt to append to scan
             try:
                 if scan_tolerance is None:
-                    prev.scan.append(record.scan)
+                    prev.sequence.append(record.sequence)
                 else:
-                    prev.scan.append(record.scan, scan_tolerance=scan_tolerance)
+                    prev.sequence.append(record.sequence, scan_tolerance=scan_tolerance)
             except RuntimeError as e:
                 print(e)
                 logger.debug(
@@ -1253,7 +1253,7 @@ def _merge_scans(
                 )
             else:
                 # If we appended, then we don't need to keep this record's scan
-                record.scan = prev.scan
+                record.sequence = prev.sequence
                 logger.debug("  Appended record %s to previous", record)
                 continue
         merged_records.append(record)
@@ -1336,7 +1336,7 @@ def _create_imageset(
         imageset.set_beam(r.beam, i)
         imageset.set_detector(r.detector, i)
         imageset.set_goniometer(r.goniometer, i)
-        imageset.set_sequence(r.scan, i)
+        imageset.set_sequence(r.sequence, i)
     return imageset
 
 
@@ -1354,9 +1354,7 @@ def _create_imagesequence(record, format_class, format_kwargs=None):
     Returns:
         An imageset representing the sequence of data
     """
-    assert record.scan
-    assert record.template
-    index_start, index_end = record.scan.get_image_range()
+    index_start, index_end = record.sequence.get_image_range()
     # Create the sequence
     sequence = dxtbx.imageset.ImageSetFactory.make_sequence(
         template=os.path.abspath(record.template),
@@ -1365,7 +1363,7 @@ def _create_imagesequence(record, format_class, format_kwargs=None):
         beam=record.beam,
         detector=record.detector,
         goniometer=record.goniometer,
-        sequence=record.scan,
+        sequence=record.sequence,
         format_kwargs=format_kwargs,
         # check_format=False,
     )
