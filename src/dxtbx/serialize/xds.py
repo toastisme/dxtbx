@@ -63,7 +63,7 @@ def to_imageset(input_filename, extra_filename=None):
         beam = models.get_beam()
         detector = models.get_detector()
         goniometer = models.get_goniometer()
-        scan = models.get_scan()
+        scan = models.get_sequence()
         scan.set_image_range(image_range)
     else:
         beam = None
@@ -271,7 +271,7 @@ class to_xds:
         return self._sequence.get_beam()
 
     def get_scan(self):
-        return self._sequence.get_scan()
+        return self._sequence.get_sequence()
 
     def get_template(self):
         try:

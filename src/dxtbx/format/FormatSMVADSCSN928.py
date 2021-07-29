@@ -50,7 +50,7 @@ class FormatSMVADSCSN928(FormatSMVADSCSN):
 if __name__ == "__main__":
     for arg in sys.argv[1:]:
         print(FormatSMVADSCSN928.understand(arg))
-        print(FormatSMVADSCSN928(arg).get_scan())
+        print(FormatSMVADSCSN928(arg).get_sequence())
         print(FormatSMVADSCSN928(arg).get_goniometer())
         print(FormatSMVADSCSN928(arg).get_detector())
         print(FormatSMVADSCSN928(arg).get_beam())

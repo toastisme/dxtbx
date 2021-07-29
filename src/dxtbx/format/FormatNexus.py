@@ -49,8 +49,8 @@ class FormatNexus(FormatHDF5):
 
         self._setup_gonio_and_scan(sample, detector)
 
-        if self._scan_model:
-            array_range = self._scan_model.get_array_range()
+        if self._sequence_model:
+            array_range = self._sequence_model.get_array_range()
             num_images = array_range[1] - array_range[0]
         else:
             num_images = 0
@@ -76,7 +76,7 @@ class FormatNexus(FormatHDF5):
     def _setup_gonio_and_scan(self, sample, detector):
         """Set up rotation-specific models"""
         self._goniometer_model = nexus.GoniometerFactory(sample).model
-        self._scan_model = nexus.generate_scan_model(sample, detector)
+        self._sequence_model = nexus.generate_scan_model(sample, detector)
 
     def _end(self):
         return
@@ -91,8 +91,8 @@ class FormatNexus(FormatHDF5):
         self._beam_model, _ = self._beam_factory.read_models(index)
         return self._beam_model
 
-    def _scan(self):
-        return self._scan_model
+    def _sequence(self):
+        return self._sequence_model
 
     def get_goniometer(self, index=None):
         return self._goniometer()
@@ -107,10 +107,10 @@ class FormatNexus(FormatHDF5):
         self._beam_model, _ = self._beam_factory.read_models(index)
         return self._beam_factory.spectrum
 
-    def get_scan(self, index=None):
+    def get_sequence(self, index=None):
         if index is None:
-            return self._scan()
-        scan = self._scan()
+            return self._sequence()
+        scan = self._sequence()
         if scan is not None:
             return scan[index]
         return scan
@@ -122,8 +122,8 @@ class FormatNexus(FormatHDF5):
         return nexus.MaskFactory(self.instrument.detectors, index).mask
 
     def get_num_images(self):
-        if self._scan() is not None:
-            return self._scan().get_num_images()
+        if self._sequence() is not None:
+            return self._sequence().get_num_images()
         return len(self._raw_data)
 
     def get_image_file(self, index=None):
@@ -167,7 +167,7 @@ class FormatNexusStill(FormatMultiImageLazy, FormatNexus, FormatStill):
     def _setup_gonio_and_scan(self, sample, detector):
         """No rotation-specific models for stills"""
         self._goniometer_model = None
-        self._scan_model = None
+        self._sequence_model = None
 
     def get_num_images(self):
         return len(self._raw_data)
@@ -182,7 +182,7 @@ if __name__ == "__main__":
             beam = format_instance.get_beam()
             detector = format_instance.get_detector()
             goniometer = format_instance.get_goniometer()
-            scan = format_instance.get_scan()
+            scan = format_instance.get_sequence()
 
             iset = FormatNexus.get_imageset(arg)
             print(beam)
