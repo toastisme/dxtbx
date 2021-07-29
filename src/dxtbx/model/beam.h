@@ -25,9 +25,9 @@ namespace dxtbx { namespace model {
   using scitbx::vec3;
 
   /** Base class for beam objects */
-  class BeamBase {
+  class Beam {
   public:
-    virtual ~BeamBase() {}
+    virtual ~Beam() {}
 
     virtual vec3<double> get_sample_to_source_direction() const = 0;
     // Set the direction.
@@ -38,7 +38,7 @@ namespace dxtbx { namespace model {
     virtual void set_unit_s0(vec3<double> unit_s0) = 0; 
   };
 
-  class TOFBeam : public BeamBase{
+  class TOFBeam : public Beam{
   public:
 
     TOFBeam()
@@ -97,7 +97,7 @@ namespace dxtbx { namespace model {
   };
 
   /** A class to represent a simple beam. */
-  class MonochromaticBeam : public BeamBase {
+  class MonochromaticBeam : public Beam {
   public:
     /** Default constructor: initialise all to zero */
     MonochromaticBeam()

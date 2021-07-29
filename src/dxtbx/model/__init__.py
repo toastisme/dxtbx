@@ -27,7 +27,6 @@ try:
         Beam,
         MonochromaticBeam,
         TOFBeam,
-        BeamBase,
         Crystal,
         CrystalBase,
         Detector,
@@ -64,7 +63,6 @@ try:
 except ModuleNotFoundError:
     from dxtbx_model_ext import (  # type: ignore
         Beam,
-        BeamBase,
         MonochromaticBeam,
         Crystal,
         CrystalBase,
@@ -103,7 +101,7 @@ except ModuleNotFoundError:
 __all__ = (
     "MonochromaticBeam",
     "TOFBeam",
-    "BeamBase",
+    "Beam",
     "BeamFactory",
     "Crystal",
     "CrystalBase",
