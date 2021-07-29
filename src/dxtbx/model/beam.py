@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-from abc import ABC
 from typing import Dict
 
 import pycbf
@@ -54,7 +53,7 @@ beam_phil_scope = libtbx.phil.parse(
 )
 
 
-class BeamFactory(ABC):
+class BeamFactory:
     """A factory class for beam objects, which encapsulate standard beam
     models. In cases where a full cbf description is available this
     will be used, otherwise simplified descriptions can be applied."""
@@ -93,6 +92,15 @@ class BeamFactory(ABC):
         :rtype: Beam
         """
         raise NotImplementedError
+
+    @staticmethod
+    def detect_factory_from_dict(dict: Dict):
+        if "wavelength" in dict:
+            return MonochromaticBeamFactory
+        elif "sample_to_moderator_distance" in dict:
+            return TOFBeamFactory
+        else:
+            raise RuntimeError("Cannot detect Beam type from dict")
 
 
 class MonochromaticBeamFactory(BeamFactory):
