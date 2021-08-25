@@ -16,6 +16,7 @@ from io import IOBase
 from typing import Callable, ClassVar
 
 import libtbx
+from libtbx.utils import Sorry
 
 import dxtbx.filecache_controller
 from dxtbx.format.image import ImageBool
