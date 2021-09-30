@@ -69,11 +69,11 @@ class FormatEDFALS733(Format):
 
     def _beam(self):
         """Return a simple model for the beam."""
-        return self._beam_factory.simple(wavelength=1.0)  # dummy argument
+        return self._beam_factory.make_simple_beam(wavelength=1.0)  # dummy argument
 
     def _scan(self):
         """Return the scan information for this image."""
-        return self._scan_factory.single_file(
+        return self._sequence_factory.single_file(
             filename=self._image_file,
             exposure_times=self.detectorbase.parameters["count_time"],
             osc_start=0.0,

@@ -63,7 +63,7 @@ class FormatRAXISIVSPring8(RAXISHelper, Format):
 
         wavelength = struct.unpack(self._f, self._header_bytes[292:296])[0]
 
-        return self._beam_factory.simple(wavelength)
+        return self._beam_factory.make_simple_beam(wavelength)
 
     def _scan(self):
         """Return the scan information for this image."""
@@ -86,6 +86,6 @@ class FormatRAXISIVSPring8(RAXISHelper, Format):
 
         osc_range = osc_end - osc_start
 
-        return self._scan_factory.single_file(
+        return self._sequence_factory.single_file(
             self._image_file, exposure_time, osc_start, osc_range, epoch
         )

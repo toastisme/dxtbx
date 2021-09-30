@@ -3,7 +3,7 @@ import pickle
 
 from dxtbx.format.image import ImageBool, ImageDouble
 from dxtbx.imageset import ImageSequence, ImageSet, ImageSetFactory
-from dxtbx.model import BeamFactory, DetectorFactory, GoniometerFactory, ScanFactory
+from dxtbx.model import BeamFactory, DetectorFactory, GoniometerFactory, SequenceFactory
 from dxtbx.serialize.filename import resolve_path
 
 
@@ -56,15 +56,17 @@ def imagesequence_to_dict(sequence):
     """
 
     return {
-        "__id__": "imageset",
-        "template": filename_to_absolute(sequence.get_template()),
-        "mask": filename_or_none(sequence.external_lookup.mask.filename),
-        "gain": filename_or_none(sequence.external_lookup.gain.filename),
-        "pedestal": filename_or_none(sequence.external_lookup.pedestal.filename),
-        "beam": sequence.get_beam().to_dict(),
-        "detector": sequence.get_detector().to_dict(),
-        "goniometer": sequence.get_goniometer().to_dict(),
-        "scan": sequence.get_scan().to_dict(),
+        [
+            ("__id__", "imageset"),
+            ("template", filename_to_absolute(sequence.get_template())),
+            ("mask", filename_or_none(sequence.external_lookup.mask.filename)),
+            ("gain", filename_or_none(sequence.external_lookup.gain.filename)),
+            ("pedestal", filename_or_none(sequence.external_lookup.pedestal.filename)),
+            ("beam", sequence.get_beam().to_dict()),
+            ("detector", sequence.get_detector().to_dict()),
+            ("goniometer", sequence.get_goniometer().to_dict()),
+            ("scan", sequence.get_sequence().to_dict()),
+        ]
     }
 
 
@@ -122,6 +124,7 @@ def basic_imageset_from_dict(d, directory=None):
 
 
 def imagesequence_from_dict(d, check_format=True, directory=None):
+
     """Construct and image sequence from the dictionary."""
     # Get the template (required)
     template = resolve_path(str(d["template"]), directory=directory)
@@ -133,11 +136,11 @@ def imagesequence_from_dict(d, check_format=True, directory=None):
     else:
         image_range = scan_dict.get("image_range")
 
-    # Set the models with the existing models as templates
+    # Set the models with the exisiting models as templates
     beam = BeamFactory.from_dict(d.get("beam"))
     goniometer = GoniometerFactory.from_dict(d.get("goniometer"))
     detector = DetectorFactory.from_dict(d.get("detector"))
-    scan = ScanFactory.from_dict(d.get("scan"))
+    scan = SequenceFactory.from_dict(d.get("scan"))
 
     # Construct the sequence
     try:
@@ -147,7 +150,7 @@ def imagesequence_from_dict(d, check_format=True, directory=None):
             beam=beam,
             detector=detector,
             goniometer=goniometer,
-            scan=scan,
+            sequence=scan,
             check_format=check_format,
         )[0]
     except Exception:
@@ -158,7 +161,7 @@ def imagesequence_from_dict(d, check_format=True, directory=None):
             beam=beam,
             detector=detector,
             goniometer=goniometer,
-            scan=scan,
+            sequence=scan,
             check_format=check_format,
         )
 

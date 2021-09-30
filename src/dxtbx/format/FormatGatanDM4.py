@@ -366,7 +366,7 @@ class FormatGatanDM4(Format):
         oscillation = (0, 0.5)
         epochs = [0] * self._num_images
 
-        return self._scan_factory.make_scan(
+        return self._sequence_factory.make_scan(
             image_range, exposure_times, oscillation, epochs, deg=True
         )
 
@@ -456,11 +456,11 @@ class FormatGatanDM4Stack(FormatMultiImage, FormatGatanDM4):
     def get_beam(self, index=None):
         return Format.get_beam(self)
 
-    def get_scan(self, index=None):
+    def get_sequence(self, index=None):
         if index is None:
-            return Format.get_scan(self)
+            return Format.get_sequence(self)
         else:
-            scan = Format.get_scan(self)
+            scan = Format.get_sequence(self)
             return scan[index]
 
     def get_image_file(self, index=None):

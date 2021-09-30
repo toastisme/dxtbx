@@ -15,14 +15,14 @@ from dxtbx.datablock import DataBlockFactory
 from dxtbx.format.Format import Format
 from dxtbx.imageset import ImageSetFactory
 from dxtbx.model import (
-    Beam,
     Crystal,
     Detector,
     Experiment,
     ExperimentList,
     Goniometer,
+    MonochromaticBeam,
     Scan,
-    ScanFactory,
+    SequenceFactory,
 )
 from dxtbx.model.experiment_list import ExperimentListDict, ExperimentListFactory
 
@@ -94,7 +94,7 @@ def test_experiment_list_extend():
 
 def test_experiment_contains():
     # Create a load of models
-    b1 = Beam()
+    b1 = MonochromaticBeam()
     d1 = Detector()
     g1 = Goniometer()
     s1 = Scan()
@@ -102,7 +102,7 @@ def test_experiment_contains():
 
     # Create an experiment
     e = Experiment(
-        beam=b1, detector=d1, goniometer=g1, scan=s1, crystal=c1, imageset=None
+        beam=b1, detector=d1, goniometer=g1, sequence=s1, crystal=c1, imageset=None
     )
 
     # Check experiment contains model
@@ -113,7 +113,7 @@ def test_experiment_contains():
     assert c1 in e
 
     # Create a load of models that look the same but aren't
-    b2 = Beam()
+    b2 = MonochromaticBeam()
     d2 = Detector()
     g2 = Goniometer()
     s2 = Scan()
@@ -129,14 +129,14 @@ def test_experiment_contains():
 
 def test_experiment_equality():
     # Create a load of models
-    b1 = Beam()
+    b1 = MonochromaticBeam()
     d1 = Detector()
     g1 = Goniometer()
     s1 = Scan()
     c1 = Crystal((1, 0, 0), (0, 1, 0), (0, 0, 1), space_group_symbol="P1")
 
     # Create a load of models that look the same but aren't
-    b2 = Beam()
+    b2 = MonochromaticBeam()
     d2 = Detector()
     g2 = Goniometer()
     s2 = Scan()
@@ -144,13 +144,13 @@ def test_experiment_equality():
 
     # Create a few experiments
     e1 = Experiment(
-        beam=b1, detector=d1, goniometer=g1, scan=s1, crystal=c1, imageset=None
+        beam=b1, detector=d1, goniometer=g1, sequence=s1, crystal=c1, imageset=None
     )
     e2 = Experiment(
-        beam=b1, detector=d1, goniometer=g1, scan=s1, crystal=c1, imageset=None
+        beam=b1, detector=d1, goniometer=g1, sequence=s1, crystal=c1, imageset=None
     )
     e3 = Experiment(
-        beam=b2, detector=d2, goniometer=g2, scan=s2, crystal=c2, imageset=None
+        beam=b2, detector=d2, goniometer=g2, sequence=s2, crystal=c2, imageset=None
     )
 
     # Check e1 equals e2 and neither equals e3
@@ -165,13 +165,13 @@ def test_experiment_consistent(dials_data):
     sequence = ImageSetFactory.new(sorted(f.strpath for f in sequence_filenames))[0]
 
     # Create experiment with sequence and good scan
-    e = Experiment(imageset=sequence, scan=sequence.get_scan())
+    e = Experiment(imageset=sequence, sequence=sequence.get_sequence())
     assert e.is_consistent()
 
     # Create experiment with sequence and defective scan
-    scan = sequence.get_scan()
+    scan = sequence.get_sequence()
     scan.set_image_range((1, 1))
-    e = Experiment(imageset=sequence, scan=scan)
+    e = Experiment(imageset=sequence, sequence=scan)
     # assert not e.is_consistent()) # FIXME
 
     ## Create experiment with imageset and good scan
@@ -193,10 +193,10 @@ def test_experimentlist_contains(experiment_list):
         assert e.beam in experiment_list
         assert e.detector in experiment_list
         assert e.goniometer in experiment_list
-        assert e.scan in experiment_list
+        assert e.sequence in experiment_list
 
     # Create some more models
-    b = Beam()
+    b = MonochromaticBeam()
     d = Detector()
     g = Goniometer()
     s = Scan()
@@ -227,7 +227,7 @@ def test_experimentlist_indices(experiment_list):
     b = [e.beam for e in experiment_list]
     d = [e.detector for e in experiment_list]
     g = [e.goniometer for e in experiment_list]
-    s = [e.scan for e in experiment_list]
+    s = [e.sequence for e in experiment_list]
 
     # Check indices of beams
     assert list(experiment_list.indices(b[0])) == [0, 4]
@@ -258,7 +258,7 @@ def test_experimentlist_indices(experiment_list):
     assert list(experiment_list.indices(s[4])) == [0, 4]
 
     # Check some models not in the list
-    assert len(experiment_list.indices(Beam())) == 0
+    assert len(experiment_list.indices(MonochromaticBeam())) == 0
     assert len(experiment_list.indices(Detector())) == 0
     assert len(experiment_list.indices(Goniometer())) == 0
     assert len(experiment_list.indices(Scan())) == 0
@@ -269,7 +269,7 @@ def test_experimentlist_models(experiment_list):
     b = experiment_list.beams()
     d = experiment_list.detectors()
     g = experiment_list.goniometers()
-    s = experiment_list.scans()
+    s = experiment_list.sequences()
 
     # Check we have the expected number
     assert len(b) == 3
@@ -290,9 +290,9 @@ def test_experimentlist_models(experiment_list):
     assert g[0] == experiment_list[0].goniometer
     assert g[1] == experiment_list[1].goniometer
 
-    assert s[2] == experiment_list[2].scan
-    assert s[1] == experiment_list[1].scan
-    assert s[2] == experiment_list[2].scan
+    assert s[2] == experiment_list[2].sequence
+    assert s[1] == experiment_list[1].sequence
+    assert s[2] == experiment_list[2].sequence
 
 
 def test_experimentlist_to_dict(experiment_list):
@@ -307,7 +307,7 @@ def test_experimentlist_to_dict(experiment_list):
     assert len(obj["beam"]) == 3
     assert len(obj["detector"]) == 3
     assert len(obj["goniometer"]) == 3
-    assert len(obj["scan"]) == 3
+    assert len(obj["sequence"]) == 3
 
     # The expected models
     b = [0, 1, 2, 1, 0]
@@ -321,7 +321,7 @@ def test_experimentlist_to_dict(experiment_list):
         assert eobj["beam"] == b[i]
         assert eobj["detector"] == d[i]
         assert eobj["goniometer"] == g[i]
-        assert eobj["scan"] == s[i]
+        assert eobj["sequence"] == s[i]
 
 
 def test_experimentlist_where(experiment_list):
@@ -333,10 +333,10 @@ def test_experimentlist_where(experiment_list):
         assert goniometer is not None
         for i in experiment_list.where(goniometer=goniometer):
             assert experiment_list[i].goniometer is goniometer
-    for scan in experiment_list.scans():
-        assert scan is not None
-        for i in experiment_list.where(scan=scan):
-            assert experiment_list[i].scan is scan
+    for sequence in experiment_list.sequence():
+        assert sequence is not None
+        for i in experiment_list.where(sequence=sequence):
+            assert experiment_list[i].sequence is sequence
     for detector in experiment_list.detectors():
         assert detector is not None
         for i in experiment_list.where(detector=detector):
@@ -349,9 +349,9 @@ def experiment_list():
     experiments = ExperimentList()
 
     # Create a few beams
-    b1 = Beam()
-    b2 = Beam()
-    b3 = Beam()
+    b1 = MonochromaticBeam()
+    b2 = MonochromaticBeam()
+    b3 = MonochromaticBeam()
 
     # Create a few detectors
     d1 = Detector()
@@ -382,7 +382,7 @@ def experiment_list():
                 beam=b[i],
                 detector=d[i],
                 goniometer=g[i],
-                scan=s[i],
+                sequence=s[i],
                 identifier=ident[i],
             )
         )
@@ -422,14 +422,14 @@ def test_experimentlist_factory_from_json(monkeypatch, dials_regression):
         assert e1.beam
         assert e1.detector
         assert e1.goniometer
-        assert e1.scan
+        assert e1.sequence
         assert e1.crystal
         for ee in e[1:]:
             assert e1.imageset == ee.imageset
             assert e1.beam == ee.beam
             assert e1.detector == ee.detector
             assert e1.goniometer == ee.goniometer
-            assert e1.scan == ee.scan
+            assert e1.sequence == ee.sequence
             assert e1.crystal == ee.crystal
 
 
@@ -457,7 +457,7 @@ def test_experimentlist_factory_from_pickle(monkeypatch, dials_regression):
         assert e1.beam and e1.beam == e2.beam
         assert e1.detector and e1.detector == e2.detector
         assert e1.goniometer and e1.goniometer == e2.goniometer
-        assert e1.scan and e1.scan == e2.scan
+        assert e1.sequence and e1.sequence == e2.sequence
         assert e1.crystal and e1.crystal == e2.crystal
 
 
@@ -483,12 +483,12 @@ def test_experimentlist_factory_from_args(monkeypatch, dials_regression):
         assert experiment.beam
         assert experiment.detector
         assert experiment.goniometer
-        assert experiment.scan
+        assert experiment.sequence
 
 
 def test_experimentlist_factory_from_imageset():
     imageset = Format.get_imageset(["filename.cbf"], as_imageset=True)
-    imageset.set_beam(Beam(), 0)
+    imageset.set_beam(MonochromaticBeam(), 0)
     imageset.set_detector(Detector(), 0)
 
     crystal = Crystal((1, 0, 0), (0, 1, 0), (0, 0, 1), space_group_symbol="P1")
@@ -507,10 +507,10 @@ def test_experimentlist_factory_from_sequence():
 
     imageset = Format.get_imageset(
         filenames,
-        beam=Beam(),
+        beam=MonochromaticBeam(),
         detector=Detector(),
         goniometer=Goniometer(),
-        scan=Scan((1, 2), (0, 1)),
+        sequence=Scan((1, 2), (0, 1)),
         as_sequence=True,
     )
 
@@ -523,7 +523,7 @@ def test_experimentlist_factory_from_sequence():
     assert experiments[0].beam
     assert experiments[0].detector is not None
     assert experiments[0].goniometer
-    assert experiments[0].scan
+    assert experiments[0].sequence
     assert experiments[0].crystal
 
 
@@ -532,10 +532,10 @@ def test_experimentlist_factory_from_datablock():
 
     imageset = Format.get_imageset(
         filenames,
-        beam=Beam(),
+        beam=MonochromaticBeam(),
         detector=Detector(),
         goniometer=Goniometer(),
-        scan=Scan((1, 2), (0, 1)),
+        sequence=Scan((1, 2), (0, 1)),
         as_sequence=True,
     )
 
@@ -551,7 +551,7 @@ def test_experimentlist_factory_from_datablock():
     assert experiments[0].beam
     assert experiments[0].detector is not None
     assert experiments[0].goniometer
-    assert experiments[0].scan
+    assert experiments[0].sequence
     assert experiments[0].crystal
 
 
@@ -647,10 +647,10 @@ def test_experimentlist_dumper_dump_empty_sequence(tmp_path):
 
     imageset = Format.get_imageset(
         filenames,
-        beam=Beam((1, 0, 0)),
+        beam=MonochromaticBeam((1, 0, 0)),
         detector=Detector(),
         goniometer=Goniometer(),
-        scan=Scan((1, 2), (0.0, 1.0)),
+        sequence=Scan((1, 2), (0.0, 1.0)),
         as_sequence=True,
     )
 
@@ -730,16 +730,26 @@ def test_experimentlist_with_identifiers():
     experiments = ExperimentList()
 
     experiments.append(
-        Experiment(beam=Beam(s0=(0, 0, -1)), detector=Detector(), identifier="bacon")
+        Experiment(
+            beam=MonochromaticBeam(s0=(0, 0, -1)),
+            detector=Detector(),
+            identifier="bacon",
+        )
     )
 
     experiments.append(
-        Experiment(beam=Beam(s0=(0, 0, -1)), detector=Detector(), identifier="sausage")
+        Experiment(
+            beam=MonochromaticBeam(s0=(0, 0, -1)),
+            detector=Detector(),
+            identifier="sausage",
+        )
     )
 
     with pytest.raises(Exception):
         experiments.append(
-            Experiment(beam=Beam(), detector=Detector(), identifier="bacon")
+            Experiment(
+                beam=MonochromaticBeam(), detector=Detector(), identifier="bacon"
+            )
         )
 
     d = experiments.to_dict()
@@ -825,12 +835,12 @@ def test_experiment_is_still():
     assert experiment.is_still()
     experiment.goniometer = Goniometer()
     assert experiment.is_still()
-    experiment.scan = Scan()
+    experiment.sequence = Scan()
     assert experiment.is_still()
-    experiment.scan = Scan((1, 1000), (0, 0.05))
+    experiment.sequence = Scan((1, 1000), (0, 0.05))
     assert not experiment.is_still()
     # Specifically test the bug from dxtbx#4 triggered by ending on 0°
-    experiment.scan = Scan((1, 1800), (-90, 0.05))
+    experiment.sequence = Scan((1, 1800), (-90, 0.05))
     assert not experiment.is_still()
 
 
@@ -849,7 +859,7 @@ def compare_experiment(exp1, exp2):
         and exp1.beam == exp2.beam
         and exp1.detector == exp2.detector
         and exp1.goniometer == exp2.goniometer
-        and exp1.scan == exp2.scan
+        and exp1.sequence == exp2.sequence
         and exp1.profile == exp2.profile
         and exp1.scaling_model == exp2.scaling_model
         and exp1.identifier == exp2.identifier
@@ -913,14 +923,14 @@ def test_experimentlist_imagesequence_stills(dials_data):
     assert len(experiments2.goniometers()) == 1
     assert len(experiments2.detectors()) == 1
     assert len(experiments2.beams()) == 1
-    assert len(experiments2.scans()) == 3
+    assert len(experiments2.sequences()) == 3
     for expt in experiments2:
         assert expt.imageset is experiments2.imagesets()[0]
 
 
 def test_experimentlist_imagesequence_decode(mocker):
     # These models are shared between experiments
-    beam = Beam(s0=(0, 0, -1))
+    beam = MonochromaticBeam(s0=(0, 0, -1))
     detector = Detector()
     gonio = Goniometer()
 
@@ -931,7 +941,7 @@ def test_experimentlist_imagesequence_decode(mocker):
             Experiment(
                 beam=beam,
                 detector=detector,
-                scan=ScanFactory.make_scan(
+                sequence=SequenceFactory.make_scan(
                     image_range=(i + 1, i + 1),
                     exposure_times=[1],
                     oscillation=(0, 0),
@@ -967,7 +977,7 @@ def test_experimentlist_imagesequence_decode(mocker):
     assert len(experiments2.goniometers()) == 1
     assert len(experiments2.detectors()) == 1
     assert len(experiments2.beams()) == 1
-    assert len(experiments2.scans()) == 3
+    assert len(experiments2.sequences()) == 3
     for expt in experiments2:
         assert expt.imageset is experiments2.imagesets()[0]
 
@@ -1054,7 +1064,7 @@ def test_extract_metadata_record():
     assert record.beam is fmt.get_beam()
     assert record.detector is fmt.get_detector()
     assert record.goniometer is fmt.get_goniometer()
-    assert record.scan is None
+    assert record.sequence is None
     assert record.index is None
 
 
@@ -1192,10 +1202,10 @@ def test_from_null_sequence():
     filenames = ["template_%2d.cbf" % (i + 1) for i in range(0, 10)]
     sequence = Format.get_imageset(
         filenames,
-        beam=Beam((0, 0, 1)),
+        beam=MonochromaticBeam((0, 0, 1)),
         detector=Detector(),
         goniometer=Goniometer((1, 0, 0)),
-        scan=Scan((1, 10), (0, 0.1)),
+        sequence=Scan((1, 10), (0, 0.1)),
     )
 
     # Create the experiments
@@ -1209,7 +1219,7 @@ def test_from_null_sequence():
     assert imagesets[0].get_beam() == sequence.get_beam()
     assert imagesets[0].get_detector() == sequence.get_detector()
     assert imagesets[0].get_goniometer() == sequence.get_goniometer()
-    assert imagesets[0].get_scan() == sequence.get_scan()
+    assert imagesets[0].get_sequence() == sequence.get_sequence()
 
 
 def test_from_templates(dials_data):

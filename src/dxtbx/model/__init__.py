@@ -12,16 +12,15 @@ from scitbx import matrix
 from scitbx.array_family import flex
 
 from dxtbx.imageset import ImageGrid, ImageSequence, ImageSet
-from dxtbx.model.beam import BeamFactory
+from dxtbx.model.beam import BeamFactory, MonochromaticBeamFactory, TOFBeamFactory
 from dxtbx.model.crystal import CrystalFactory
 from dxtbx.model.detector import DetectorFactory
 from dxtbx.model.goniometer import GoniometerFactory
 from dxtbx.model.profile import ProfileModelFactory
-from dxtbx.model.scan import ScanFactory
+from dxtbx.model.sequence import SequenceFactory
 from dxtbx.util import format_float_with_standard_uncertainty
 from dxtbx_model_ext import (
     Beam,
-    BeamBase,
     Crystal,
     CrystalBase,
     Detector,
@@ -33,6 +32,7 @@ from dxtbx_model_ext import (
     KappaDirection,
     KappaGoniometer,
     KappaScanAxis,
+    MonochromaticBeam,
     MosaicCrystalKabsch2010,
     MosaicCrystalSauter2014,
     MultiAxisGoniometer,
@@ -42,9 +42,11 @@ from dxtbx_model_ext import (
     ParallaxCorrectedPxMmStrategy,
     PxMmStrategy,
     Scan,
-    ScanBase,
+    Sequence,
     SimplePxMmStrategy,
     Spectrum,
+    TOFBeam,
+    TOFSequence,
     VirtualPanel,
     VirtualPanelFrame,
     get_mod2pi_angles_in_range,
@@ -55,9 +57,12 @@ from dxtbx_model_ext import (
 )
 
 __all__ = (
+    "MonochromaticBeam",
+    "TOFBeam",
     "Beam",
-    "BeamBase",
     "BeamFactory",
+    "MonochromaticBeamFactory",
+    "TOFBeamFactory",
     "Crystal",
     "CrystalBase",
     "CrystalFactory",
@@ -85,8 +90,9 @@ __all__ = (
     "ProfileModelFactory",
     "PxMmStrategy",
     "Scan",
-    "ScanBase",
-    "ScanFactory",
+    "Sequence",
+    "TOFSequence",
+    "SequenceFactory",
     "SimplePxMmStrategy",
     "Spectrum",
     "VirtualPanel",
@@ -511,7 +517,7 @@ class _:
         self.beam = self.imageset.get_beam(index)
         self.detector = self.imageset.get_detector(index)
         self.goniometer = self.imageset.get_goniometer(index)
-        self.scan = self.imageset.get_scan(index)
+        self.sequence = self.imageset.get_sequence(index)
 
 
 @boost_adaptbx.boost.python.inject_into(ExperimentList)
@@ -534,9 +540,9 @@ class _:
         """Get a list of the unique goniometers (includes None)."""
         return list(OrderedSet(e.goniometer for e in self))
 
-    def scans(self):
+    def sequences(self):
         """Get a list of the unique scans (includes None)."""
-        return list(OrderedSet(e.scan for e in self))
+        return list(OrderedSet(e.sequence for e in self))
 
     def crystals(self):
         """Get a list of the unique crystals (includes None)."""
@@ -579,7 +585,7 @@ class _:
             ("beam", self.beams, lambda x: x.beam),
             ("detector", self.detectors, lambda x: x.detector),
             ("goniometer", self.goniometers, lambda x: x.goniometer),
-            ("scan", self.scans, lambda x: x.scan),
+            ("sequence", self.sequences, lambda x: x.sequence),
             ("crystal", self.crystals, lambda x: x.crystal),
             ("profile", self.profiles, lambda x: x.profile),
             ("scaling_model", self.scaling_models, lambda x: x.scaling_model),

@@ -136,12 +136,12 @@ class FormatBruker(Format):
     def _beam(self):
         """Return a simple model for the beam."""
 
-        return self._beam_factory.simple(self.detectorbase.wavelength)
+        return self._beam_factory.make_simple_beam(self.detectorbase.wavelength)
 
     def _scan(self):
         """Return the scan information for this image."""
 
-        return self._scan_factory.single_file(
+        return self._sequence_factory.single_file(
             filename=self._image_file,
             # It's not at all clear how to recover the exposure time from the header
             # or even whether it is recorded.

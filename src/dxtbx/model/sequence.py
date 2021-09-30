@@ -6,7 +6,7 @@ import libtbx.phil
 from scitbx.array_family import flex
 
 from dxtbx.model.scan_helpers import scan_helper_image_files
-from dxtbx_model_ext import Scan
+from dxtbx_model_ext import Scan, TOFSequence
 
 scan_phil_scope = libtbx.phil.parse(
     """
@@ -39,7 +39,7 @@ scan_phil_scope = libtbx.phil.parse(
 )
 
 
-class ScanFactory:
+class SequenceFactory:
     """A factory for scan instances, to help with constructing the classes
     in a set of common circumstances."""
 
@@ -106,18 +106,30 @@ class ScanFactory:
         Returns:
             The scan model
         """
+
+        def is_tof_sequence(sequence_dict):
+            return "tof_in_seconds" in sequence_dict
+
+        def is_scan(sequence_dict):
+            return "exposure_time" in sequence_dict
+
         if d is None and t is None:
             return None
         joint = t.copy() if t else {}
         joint.update(d)
 
-        if not isinstance(joint["exposure_time"], list):
-            joint["exposure_time"] = [joint["exposure_time"]]
-        joint.setdefault("batch_offset", 0)  # backwards compatibility 20180205
-        joint.setdefault("valid_image_ranges", {})  # backwards compatibility 20181113
+        if is_tof_sequence(joint):
+            return TOFSequence.from_dict(joint)
 
-        # Create the model from the joint dictionary
-        return Scan.from_dict(joint)
+        elif is_scan(joint):
+            if not isinstance(joint["exposure_time"], list):
+                joint["exposure_time"] = [joint["exposure_time"]]
+            joint.setdefault("batch_offset", 0)  # backwards compatibility 20180205
+            joint.setdefault(
+                "valid_image_ranges", {}
+            )  # backwards compatibility 20181113
+            return Scan.from_dict(joint)
+        raise NotImplementedError("Cannot understand sequence type")
 
     @staticmethod
     def make_scan(
@@ -149,19 +161,20 @@ class ScanFactory:
         )
 
     @staticmethod
+    def make_tof_sequence(image_range, tof_in_seconds, batch_offset=0):
+        return TOFSequence(
+            tuple(map(int, image_range)),
+            flex.double(list(map(float, tof_in_seconds))),
+            batch_offset,
+        )
+
+    @staticmethod
     def single_file(filename, exposure_times, osc_start, osc_width, epoch):
         """Construct an scan instance for a single image."""
         index = scan_helper_image_files.image_to_index(os.path.split(filename)[-1])
         if epoch is None:
             epoch = 0.0
-
-        # if the oscillation width is negative at this stage it is almost
-        # certainly an artefact of the omega end being 0 when the omega start
-        # angle was ~ 360 so it would be ~ -360 - see dxtbx#378
-        if osc_width < -180:
-            osc_width += 360
-
-        return ScanFactory.make_scan(
+        return SequenceFactory.make_scan(
             (index, index), exposure_times, (osc_start, osc_width), {index: epoch}
         )
 
@@ -172,7 +185,7 @@ class ScanFactory:
         cbf_handle = pycbf.cbf_handle_struct()
         cbf_handle.read_file(cif_file, pycbf.MSG_DIGEST)
 
-        return ScanFactory.imgCIF_H(cif_file, cbf_handle)
+        return SequenceFactory.imgCIF_H(cif_file, cbf_handle)
 
     @staticmethod
     def imgCIF_H(cif_file, cbf_handle):
@@ -187,7 +200,7 @@ class ScanFactory:
             angles = tuple(gonio.get_rotation_range())
         except Exception as e:
             if str(e).strip() == "CBFlib Error(s): CBF_NOTFOUND":
-                # probably a still shot -> no scan object
+                # probaby a still shot -> no scan object
                 return None
             raise
 
@@ -200,13 +213,13 @@ class ScanFactory:
 
         gonio.__swig_destroy__(gonio)
 
-        return ScanFactory.make_scan(
+        return SequenceFactory.make_scan(
             (index, index), exposure, angles, {index: timestamp}
         )
 
     @staticmethod
     def add(scans):
-        """Sum a list of scans wrapping the slightly clumsy idiomatic method:
+        """Sum a list of scans wrapping the sligtly clumsy idiomatic method:
         sum(scans[1:], scans[0])."""
         return sum(scans[1:], scans[0])
 

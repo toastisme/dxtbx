@@ -196,7 +196,7 @@ class FormatCBFMini(FormatCBF):
 
         wavelength = float(self._cif_header_dictionary["Wavelength"].split()[0])
 
-        beam = self._beam_factory.simple(wavelength)
+        beam = self._beam_factory.make_simple_beam(wavelength)
 
         try:
             flux = float(self._cif_header_dictionary["Flux"].split()[0])
@@ -212,7 +212,7 @@ class FormatCBFMini(FormatCBF):
 
         return beam
 
-    def _scan(self):
+    def _sequence(self):
         exposure_time = float(self._cif_header_dictionary["Exposure_period"].split()[0])
         osc_start = float(self._cif_header_dictionary["Start_angle"].split()[0])
         osc_range = float(self._cif_header_dictionary["Angle_increment"].split()[0])
@@ -222,7 +222,7 @@ class FormatCBFMini(FormatCBF):
         else:
             timestamp = 0.0
 
-        return self._scan_factory.single_file(
+        return self._sequence_factory.single_file(
             self._image_file, exposure_time, osc_start, osc_range, timestamp
         )
 

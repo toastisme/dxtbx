@@ -117,7 +117,7 @@ class FormatXDS(Format):
             sigma_divergence=self._sigma_divergence,
         )
 
-    def _scan(self):
+    def _sequence(self):
         """Return a working scan instance."""
         # Set the scan parameters
         if self._data_range is not None:
@@ -127,7 +127,7 @@ class FormatXDS(Format):
         oscillation = (self._starting_angle, self._oscillation_range)
 
         # Create the scan object
-        return self._scan_factory.make_scan(
+        return self._sequence_factory.make_scan(
             image_range,
             0.0,
             oscillation,

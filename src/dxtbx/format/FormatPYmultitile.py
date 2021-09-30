@@ -140,7 +140,7 @@ class FormatPYmultitile(FormatPY):
     def _beam(self):
         """Return a simple model for the beam."""
 
-        return self._beam_factory.simple(self._metrology_params.wavelength)
+        return self._beam_factory.make_simple_beam(self._metrology_params.wavelength)
 
     def _scan(self):
         """Return the scan information for this image."""
@@ -151,7 +151,7 @@ class FormatPYmultitile(FormatPY):
         str_sec = self._metrology_params.timestamp[17:]
         epoch = timegm(strptime(str_min, "%Y-%m-%dT%H:%M%Z")) + float(str_sec)
 
-        return self._scan_factory.make_scan(
+        return self._sequence_factory.make_scan(
             image_range=(1, 1),
             exposure_times=[1e-15 * self._metrology_params.pulse_length],
             oscillation=(0, 0),

@@ -109,7 +109,7 @@ class FormatHDF5Lambda(FormatHDF5):
         """Dummy beam"""
 
         wavelength = 1.0
-        return self._beam_factory.simple(wavelength)
+        return self._beam_factory.make_simple_beam(wavelength)
 
     def _scan(self):
         """Dummy scan"""
@@ -121,7 +121,7 @@ class FormatHDF5Lambda(FormatHDF5):
         oscillation = (0, 1)
         epochs = [0] * nframes
 
-        return self._scan_factory.make_scan(
+        return self._sequence_factory.make_scan(
             image_range, exposure_times, oscillation, epochs, deg=True
         )
 
@@ -139,11 +139,11 @@ class FormatHDF5Lambda(FormatHDF5):
     def get_beam(self, index=None):
         return Format.get_beam(self)
 
-    def get_scan(self, index=None):
+    def get_sequence(self, index=None):
         if index is None:
-            return Format.get_scan(self)
+            return Format.get_sequence(self)
         else:
-            scan = Format.get_scan(self)
+            scan = Format.get_sequence(self)
             return scan[index]
 
     def get_raw_data(self, index):

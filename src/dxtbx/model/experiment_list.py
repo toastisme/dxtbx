@@ -20,7 +20,13 @@ from dxtbx.datablock import (
 from dxtbx.format.Format import Format
 from dxtbx.format.FormatMultiImage import FormatMultiImage
 from dxtbx.format.image import ImageBool, ImageDouble
-from dxtbx.imageset import ImageGrid, ImageSequence, ImageSet, ImageSetFactory
+from dxtbx.imageset import (
+    ImageGrid,
+    ImageSequence,
+    ImageSet,
+    ImageSetFactory,
+    ImageSetType,
+)
 from dxtbx.model import (
     BeamFactory,
     CrystalFactory,
@@ -29,7 +35,7 @@ from dxtbx.model import (
     ExperimentList,
     GoniometerFactory,
     ProfileModelFactory,
-    ScanFactory,
+    SequenceFactory,
 )
 from dxtbx.sequence_filenames import (
     locate_files_matching_template_string,
@@ -90,7 +96,7 @@ class ExperimentListDict:
                 "Expected dictionary, not {}".format(type(obj))
             )
 
-        self._obj = copy.deepcopy(obj)
+        self._obj = self._update_legacy_fields(copy.deepcopy(obj))
         self._check_format = check_format
         self._directory = directory
 
@@ -105,19 +111,40 @@ class ExperimentListDict:
         # Extract lists of models referenced by experiments
         # Go through all the imagesets and make sure the dictionary
         # references by an index rather than a file path.
+
         self._lookups = {
             model: self._extract_models(model, function)
             for model, function in (
                 ("beam", BeamFactory.from_dict),
                 ("detector", DetectorFactory.from_dict),
                 ("goniometer", GoniometerFactory.from_dict),
-                ("scan", ScanFactory.from_dict),
+                ("sequence", SequenceFactory.from_dict),
                 ("crystal", CrystalFactory.from_dict),
                 ("profile", ProfileModelFactory.from_dict),
                 ("imageset", lambda x: x),
                 ("scaling_model", self._scaling_model_from_dict),
             )
         }
+
+    def _update_legacy_fields(self, obj):
+
+        if "scan" in obj:
+            obj["sequence"] = obj["scan"]
+            del obj["scan"]
+            for i in obj["sequence"]:
+                i["__id__"] = "Scan"
+
+            for i in obj["experiment"]:
+                if "scan" in i:
+                    i["sequence"] = i["scan"]
+                    del i["scan"]
+
+        if "beam" in obj:
+            for i in obj["beam"]:
+                if "__id__" not in i and "wavelength" in i:
+                    i["__id__"] = "MonochromaticBeam"
+
+        return obj
 
     def _extract_models(self, name, from_dict):
         """
@@ -196,6 +223,9 @@ class ExperimentListDict:
 
     def _imageset_from_imageset_data(self, imageset_data, models):
         """Make an imageset from imageset_data - help with refactor decode."""
+
+        from dxtbx.imageset import ImageSetType
+
         assert imageset_data is not None
         if "params" in imageset_data:
             format_kwargs = imageset_data["params"]
@@ -205,7 +235,7 @@ class ExperimentListDict:
         beam = models["beam"]
         detector = models["detector"]
         goniometer = models["goniometer"]
-        scan = models["scan"]
+        sequence = models["sequence"]
 
         # Load the external lookup data
         mask_filename, mask = self._load_pickle_path(imageset_data, "mask")
@@ -215,25 +245,41 @@ class ExperimentListDict:
         dy_filename, dy = self._load_pickle_path(imageset_data, "dy")
 
         if imageset_data["__id__"] == "ImageSet":
-            imageset = self._make_stills(imageset_data, format_kwargs=format_kwargs)
+            imageset = self._make_stills(
+                imageset_data,
+                format_kwargs=format_kwargs,
+                imageset_type=ImageSetType.ImageSet,
+            )
+        elif imageset_data["__id__"] == "ImageSequence":
+            imageset = self._make_sequence(
+                imageset_data,
+                beam=beam,
+                detector=detector,
+                goniometer=goniometer,
+                sequence=sequence,
+                format_kwargs=format_kwargs,
+                imageset_type=ImageSetType.ImageSequence,
+            )
         elif imageset_data["__id__"] == "ImageGrid":
             imageset = self._make_grid(imageset_data, format_kwargs=format_kwargs)
         elif (
             imageset_data["__id__"] == "ImageSequence"
             or imageset_data["__id__"] == "ImageSweep"
+            or imageset_data["__id__"] == "ImageSequence"
         ):
             imageset = self._make_sequence(
                 imageset_data,
                 beam=beam,
                 detector=detector,
                 goniometer=goniometer,
-                scan=scan,
+                sequence=sequence,
                 format_kwargs=format_kwargs,
+                imageset_type=ImageSetType.ImageSequence,
             )
         elif imageset_data["__id__"] == "MemImageSet":
             imageset = self._make_mem_imageset(imageset_data)
         else:
-            raise RuntimeError("Unknown imageset type")
+            raise RuntimeError("Unknown imageset type %s" % imageset_data["__id__"])
 
         if imageset is not None:
             # Set the external lookup
@@ -277,17 +323,17 @@ class ExperimentListDict:
             imageset.external_lookup.dy.filename = dy_filename
 
             # Update the imageset models
-            if isinstance(imageset, ImageSequence):
+            if ImageSet.is_sequence(imageset):
                 imageset.set_beam(beam)
                 imageset.set_detector(detector)
                 imageset.set_goniometer(goniometer)
-                imageset.set_scan(scan)
+                imageset.set_sequence(sequence)
             elif isinstance(imageset, (ImageSet, ImageGrid)):
                 for i in range(len(imageset)):
                     imageset.set_beam(beam, i)
                     imageset.set_detector(detector, i)
                     imageset.set_goniometer(goniometer, i)
-                    imageset.set_scan(scan, i)
+                    imageset.set_sequence(sequence, i)
 
             imageset.update_detector_px_mm_data()
 
@@ -298,34 +344,34 @@ class ExperimentListDict:
         # Extract all the experiments - first find all scans belonging to
         # same imageset
 
-        eobj_scan = {}
+        eobj_sequence = {}
 
         for eobj in self._obj["experiment"]:
             if self._lookup_model("imageset", eobj) is None:
                 continue
             imageset_ref = eobj.get("imageset")
-            scan = self._lookup_model("scan", eobj)
+            sequence = self._lookup_model("sequence", eobj)
 
-            if imageset_ref in eobj_scan:
-                # if there is no scan, or scan is identical, move on, else
-                # make a scan which encompasses both scans
-                if not scan or scan == eobj_scan[imageset_ref]:
+            if imageset_ref in eobj_sequence:
+                # if there is no sequence, or sequence is identical, move on, else
+                # make a sequence which encompasses both sequences
+                if not sequence or sequence == eobj_sequence[imageset_ref]:
                     continue
-                i = eobj_scan[imageset_ref].get_image_range()
-                j = scan.get_image_range()
+                i = eobj_sequence[imageset_ref].get_image_range()
+                j = sequence.get_image_range()
                 if i[1] + 1 == j[0]:
-                    eobj_scan[imageset_ref] += scan
+                    eobj_sequence[imageset_ref] += sequence
                 else:
-                    # make a new bigger scan
-                    o = eobj_scan[imageset_ref].get_oscillation()
-                    s = scan.get_oscillation()
+                    # make a new bigger sequence
+                    o = eobj_sequence[imageset_ref].get_oscillation()
+                    s = sequence.get_oscillation()
                     assert o[1] == s[1]
-                    scan = copy.deepcopy(scan)
-                    scan.set_image_range((min(i[0], j[0]), max(i[1], j[1])))
-                    scan.set_oscillation((min(o[0], s[0]), o[1]))
-                    eobj_scan[imageset_ref] = scan
+                    sequence = copy.deepcopy(sequence)
+                    sequence.set_image_range((min(i[0], j[0]), max(i[1], j[1])))
+                    sequence.set_oscillation((min(o[0], s[0]), o[1]))
+                    eobj_sequence[imageset_ref] = sequence
             else:
-                eobj_scan[imageset_ref] = copy.deepcopy(scan)
+                eobj_sequence[imageset_ref] = copy.deepcopy(sequence)
 
         # Map of imageset/scan pairs
         imagesets = {}
@@ -340,7 +386,7 @@ class ExperimentListDict:
             beam = self._lookup_model("beam", eobj)
             detector = self._lookup_model("detector", eobj)
             goniometer = self._lookup_model("goniometer", eobj)
-            scan = self._lookup_model("scan", eobj)
+            sequence = self._lookup_model("sequence", eobj)
             crystal = self._lookup_model("crystal", eobj)
             profile = self._lookup_model("profile", eobj)
             scaling_model = self._lookup_model("scaling_model", eobj)
@@ -349,7 +395,7 @@ class ExperimentListDict:
                 "beam": beam,
                 "detector": detector,
                 "goniometer": goniometer,
-                "scan": scan,
+                "sequence": sequence,
                 "crystal": crystal,
                 "profile": profile,
                 "scaling_model": scaling_model,
@@ -362,7 +408,7 @@ class ExperimentListDict:
                 imageset_data = self._lookup_model("imageset", eobj)
                 if imageset_data is not None:
                     # Create the imageset from the input data
-                    models["scan"] = eobj_scan[imageset_ref]
+                    models["sequence"] = eobj_sequence[imageset_ref]
                     imageset = self._imageset_from_imageset_data(imageset_data, models)
                     imagesets[imageset_ref] = imageset
                 else:
@@ -376,7 +422,7 @@ class ExperimentListDict:
                     beam=beam,
                     detector=detector,
                     goniometer=goniometer,
-                    scan=scan,
+                    sequence=sequence,
                     crystal=crystal,
                     profile=profile,
                     scaling_model=scaling_model,
@@ -390,7 +436,7 @@ class ExperimentListDict:
         """Can't make a mem imageset from dict."""
         return None
 
-    def _make_stills(self, imageset, format_kwargs=None):
+    def _make_stills(self, imageset, format_kwargs=None, imageset_type=None):
         """Make a still imageset."""
         filenames = [
             resolve_path(p, directory=self._directory) if not get_url_scheme(p) else p
@@ -406,6 +452,7 @@ class ExperimentListDict:
             check_format=self._check_format,
             single_file_indices=indices,
             format_kwargs=format_kwargs,
+            imageset_type=imageset_type,
         )
 
     def _make_grid(self, imageset, format_kwargs=None):
@@ -421,19 +468,21 @@ class ExperimentListDict:
         beam=None,
         detector=None,
         goniometer=None,
-        scan=None,
+        sequence=None,
         format_kwargs=None,
+        imageset_type=ImageSetType.ImageSequence,
     ):
+
         """Make an image sequence."""
         # Get the template format
         template = resolve_path(imageset["template"], directory=self._directory)
 
         # Get the number of images (if no scan is given we'll try
         # to find all the images matching the template
-        if scan is None:
+        if sequence is None:
             i0, i1 = template_image_range(template)
         else:
-            i0, i1 = scan.get_image_range()
+            i0, i1 = sequence.get_image_range()
 
         format_class = None
         if self._check_format is False:
@@ -449,8 +498,9 @@ class ExperimentListDict:
             beam=beam,
             detector=detector,
             goniometer=goniometer,
-            scan=scan,
+            sequence=sequence,
             format_kwargs=format_kwargs,
+            imageset_type=imageset_type,
         )
 
     def _lookup_model(self, name, experiment_dict):
@@ -531,7 +581,6 @@ class ExperimentListFactory:
         load_models=True,
     ):
         """Create a list of data blocks from a list of directory or file names."""
-        experiments = ExperimentList()
 
         # Process each file given by this path list
         to_process = _openingpathiterator(filenames)
@@ -580,6 +629,8 @@ class ExperimentListFactory:
         # - Any consecutive still frames that share any metadata with the
         #   previous still fram get collected into one ImageSet
 
+        experiments = ExperimentList()
+
         # Treat each format as a separate datablock
         for format_class, records in format_groups.items():
             if issubclass(format_class, FormatMultiImage):
@@ -616,7 +667,7 @@ class ExperimentListFactory:
     @staticmethod
     def from_imageset_and_crystal(imageset, crystal, load_models=True):
         """Load an experiment list from an imageset and crystal."""
-        if isinstance(imageset, ImageSequence):
+        if ImageSet.is_sequence(imageset):
             return ExperimentListFactory.from_sequence_and_crystal(
                 imageset, crystal, load_models
             )
@@ -629,15 +680,18 @@ class ExperimentListFactory:
     def from_sequence_and_crystal(imageset, crystal, load_models=True):
         """Create an experiment list from sequence and crystal."""
 
-        assert isinstance(imageset, ImageSequence)
+        assert ImageSet.is_sequence(imageset)
 
         experiments = ExperimentList()
 
         if load_models:
             # if imagesequence is still images, make one experiment for each
             # all referencing into the same image set
-            if imageset.get_scan().is_still():
-                start, end = imageset.get_scan().get_array_range()
+            if (
+                isinstance(imageset, ImageSequence)
+                and imageset.get_sequence().is_still()
+            ):
+                start, end = imageset.get_sequence().get_array_range()
                 for j in range(start, end):
                     subset = imageset[j : j + 1]
                     experiments.append(
@@ -646,7 +700,7 @@ class ExperimentListFactory:
                             beam=imageset.get_beam(),
                             detector=imageset.get_detector(),
                             goniometer=imageset.get_goniometer(),
-                            scan=subset.get_scan(),
+                            sequence=subset.get_sequence(),
                             crystal=crystal,
                         )
                     )
@@ -657,7 +711,7 @@ class ExperimentListFactory:
                         beam=imageset.get_beam(),
                         detector=imageset.get_detector(),
                         goniometer=imageset.get_goniometer(),
-                        scan=imageset.get_scan(),
+                        sequence=imageset.get_sequence(),
                         crystal=crystal,
                     )
                 )
@@ -670,16 +724,18 @@ class ExperimentListFactory:
     @staticmethod
     def from_stills_and_crystal(imageset, crystal, load_models=True):
         """Create an experiment list from stills and crystal."""
+
         experiments = ExperimentList()
+        experiment = Experiment
         if load_models:
             for i in range(len(imageset)):
                 experiments.append(
-                    Experiment(
+                    experiment(
                         imageset=imageset[i : i + 1],
                         beam=imageset.get_beam(i),
                         detector=imageset.get_detector(i),
                         goniometer=imageset.get_goniometer(i),
-                        scan=imageset.get_scan(i),
+                        sequence=imageset.get_sequence(i),
                         crystal=crystal,
                     )
                 )
@@ -873,7 +929,7 @@ class ExperimentListFactory:
 
                 # Update the image range
                 image_range = (first, last)
-                scan = fmt.get_scan()
+                scan = fmt.get_sequence()
                 scan.set_image_range(image_range)
 
                 # Create the sequence and experiment
@@ -915,7 +971,7 @@ class ImageMetadataRecord:
         filename=None,
         index=None,
     ):
-        # type: (dxtbx.model.Beam, dxtbx.model.Detector, dxtbx.model.Goniometer, dxtbx.model.Scan, str, str, int)
+        # type: (dxtbx.model.MonochromaticBeam, dxtbx.model.Detector, dxtbx.model.Goniometer, dxtbx.model.sequence, str, str, int)
         """
         Args:
             beam:       Stores a beam model
@@ -934,7 +990,7 @@ class ImageMetadataRecord:
         self.beam = beam
         self.detector = detector
         self.goniometer = goniometer
-        self.scan = scan
+        self.sequence = scan
         self.template = template
         self.filename = filename
         self.index = index
@@ -1022,13 +1078,13 @@ class ImageMetadataRecord:
         except Exception:
             pass
         try:
-            record.scan = fmt.get_scan()
+            record.sequence = fmt.get_sequence()
         except Exception:
             pass
 
         # Get the template and index if possible - and only if we've got a
         # recorded oscillation value
-        if record.scan is not None:
+        if record.sequence is not None:
             record.template, record.index = template_regex(record.filename)
 
         return record
@@ -1039,7 +1095,7 @@ class ImageMetadataRecord:
             ("beam", self.beam),
             ("detector", self.detector),
             ("goiometer", self.goniometer),
-            ("scan", self.scan),
+            ("sequence", self.sequence),
             ("template", self.template),
             ("index", self.index),
         ]
@@ -1052,7 +1108,7 @@ class ImageMetadataRecord:
                 self.beam,
                 self.detector,
                 self.goniometer,
-                self.scan,
+                self.sequence,
                 self.template,
                 self.filename,
                 self.index,
@@ -1212,9 +1268,9 @@ def _merge_scans(records, scan_tolerance=None):
             # Attempt to append to scan
             try:
                 if scan_tolerance is None:
-                    prev.scan.append(record.scan)
+                    prev.sequence.append(record.sequence)
                 else:
-                    prev.scan.append(record.scan, scan_tolerance=scan_tolerance)
+                    prev.sequence.append(record.sequence, scan_tolerance=scan_tolerance)
             except RuntimeError as e:
                 print(e)
                 logger.debug(
@@ -1222,7 +1278,7 @@ def _merge_scans(records, scan_tolerance=None):
                 )
             else:
                 # If we appended, then we don't need to keep this record's scan
-                record.scan = prev.scan
+                record.sequence = prev.sequence
                 logger.debug("  Appended record %s to previous", record)
                 continue
         merged_records.append(record)
@@ -1296,7 +1352,7 @@ def _create_imageset(records, format_class, format_kwargs=None):
         imageset.set_beam(r.beam, i)
         imageset.set_detector(r.detector, i)
         imageset.set_goniometer(r.goniometer, i)
-        imageset.set_scan(r.scan, i)
+        imageset.set_sequence(r.sequence, i)
     return imageset
 
 
@@ -1314,7 +1370,7 @@ def _create_imagesequence(record, format_class, format_kwargs=None):
     Returns:
         An imageset representing the sequence of data
     """
-    index_start, index_end = record.scan.get_image_range()
+    index_start, index_end = record.sequence.get_image_range()
     # Create the sequence
     sequence = dxtbx.imageset.ImageSetFactory.make_sequence(
         template=os.path.abspath(record.template),
@@ -1323,7 +1379,7 @@ def _create_imagesequence(record, format_class, format_kwargs=None):
         beam=record.beam,
         detector=record.detector,
         goniometer=record.goniometer,
-        scan=record.scan,
+        sequence=record.sequence,
         format_kwargs=format_kwargs,
         # check_format=False,
     )

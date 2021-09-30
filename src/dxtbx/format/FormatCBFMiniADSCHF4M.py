@@ -119,7 +119,7 @@ class FormatCBFMiniADSCHF4M(FormatCBFMini):
 
         wavelength = float(self._cif_header_dictionary["Wavelength"].split()[0])
 
-        beam = self._beam_factory.simple(wavelength)
+        beam = self._beam_factory.make_simple_beam(wavelength)
 
         try:
             flux = float(self._cif_header_dictionary["Flux"].split()[0])
@@ -145,7 +145,7 @@ class FormatCBFMiniADSCHF4M(FormatCBFMini):
 
         timestamp = get_adsc_timestamp(self._cif_header_dictionary["timestamp"])
 
-        return self._scan_factory.single_file(
+        return self._sequence_factory.single_file(
             self._image_file, exposure_time, osc_start, osc_range, timestamp
         )
 

@@ -29,10 +29,10 @@ namespace dxtbx { namespace model {
    */
   class ExperimentList {
   public:
-    typedef scitbx::af::shared<Experiment> shared_type;
-    typedef scitbx::af::const_ref<Experiment> const_ref_type;
-    typedef shared_type::const_iterator const_iterator;
-    typedef shared_type::iterator iterator;
+    typedef scitbx::af::shared<Experiment > shared_type;
+    typedef scitbx::af::const_ref<Experiment > const_ref_type;
+    typedef typename shared_type::const_iterator const_iterator;
+    typedef typename shared_type::iterator iterator;
 
     ExperimentList() {}
 
@@ -206,7 +206,7 @@ namespace dxtbx { namespace model {
     /**
      * Check if an experiment contains the beam model
      */
-    bool contains(const boost::shared_ptr<BeamBase> &beam) const {
+    bool contains_beam(const boost::python::object &beam) const {
       for (std::size_t i = 0; i < size(); ++i) {
         if (data_[i].contains(beam)) {
           return true;
@@ -240,11 +240,11 @@ namespace dxtbx { namespace model {
     }
 
     /**
-     * Check if an experiment contains the scan model
+     * Check if an experiment contains the sequence model
      */
-    bool contains(const boost::shared_ptr<Scan> &scan) const {
+    bool contains_sequence(const boost::python::object &sequence) const {
       for (std::size_t i = 0; i < size(); ++i) {
-        if (data_[i].contains(scan)) {
+        if (data_[i].contains(sequence)) {
           return true;
         }
       }
@@ -278,7 +278,7 @@ namespace dxtbx { namespace model {
     /**
      * Replace all beam models
      */
-    void replace(boost::shared_ptr<BeamBase> a, boost::shared_ptr<BeamBase> b) {
+    void replace_beam(boost::python::object a, boost::python::object b) {
       for (std::size_t i = 0; i < size(); ++i) {
         if (data_[i].get_beam() == a) {
           data_[i].set_beam(b);
@@ -309,12 +309,12 @@ namespace dxtbx { namespace model {
     }
 
     /**
-     * Replace all scan models
+     * Replace all sequence models
      */
-    void replace(boost::shared_ptr<Scan> a, boost::shared_ptr<Scan> b) {
+    void replace_sequence(boost::python::object a, boost::python::object b) {
       for (std::size_t i = 0; i < size(); ++i) {
-        if (data_[i].get_scan() == a) {
-          data_[i].set_scan(b);
+        if (data_[i].get_sequence() == a) {
+          data_[i].set_sequence(b);
         }
       }
     }
@@ -334,36 +334,32 @@ namespace dxtbx { namespace model {
      * Replace all other models
      */
     void replace(boost::python::object a, boost::python::object b) {
-      boost::python::extract<boost::shared_ptr<BeamBase> > get_beam_a(a);
-      boost::python::extract<boost::shared_ptr<BeamBase> > get_beam_b(b);
       boost::python::extract<boost::shared_ptr<Detector> > get_detector_a(a);
       boost::python::extract<boost::shared_ptr<Detector> > get_detector_b(b);
       boost::python::extract<boost::shared_ptr<Goniometer> > get_goniometer_a(a);
       boost::python::extract<boost::shared_ptr<Goniometer> > get_goniometer_b(b);
-      boost::python::extract<boost::shared_ptr<Scan> > get_scan_a(a);
-      boost::python::extract<boost::shared_ptr<Scan> > get_scan_b(b);
       boost::python::extract<boost::shared_ptr<CrystalBase> > get_crystal_a(a);
       boost::python::extract<boost::shared_ptr<CrystalBase> > get_crystal_b(b);
-      if (get_beam_a.check()) {
-        DXTBX_ASSERT(get_beam_b.check());
-        replace(get_beam_a(), get_beam_b());
+      if (is_beam(a)) {
+        DXTBX_ASSERT(is_beam(b));
+        replace_beam(a, b);
       } else if (get_detector_a.check()) {
         DXTBX_ASSERT(get_detector_b.check());
         replace(get_detector_a(), get_detector_b());
       } else if (get_goniometer_a.check()) {
         DXTBX_ASSERT(get_goniometer_b.check());
         replace(get_goniometer_a(), get_goniometer_b());
-      } else if (get_scan_a.check()) {
-        DXTBX_ASSERT(get_scan_b.check());
-        replace(get_scan_a(), get_scan_b());
+      } else if (is_sequence(a)) {
+        DXTBX_ASSERT(is_sequence(b));
+        replace(a, b);
       } else if (get_crystal_a.check()) {
         DXTBX_ASSERT(get_crystal_b.check());
         replace(get_crystal_a(), get_crystal_b());
       } else {
-        DXTBX_ASSERT(!get_beam_b.check());
+        DXTBX_ASSERT(!is_beam(b));
         DXTBX_ASSERT(!get_detector_b.check());
         DXTBX_ASSERT(!get_goniometer_b.check());
-        DXTBX_ASSERT(!get_scan_b.check());
+        DXTBX_ASSERT(!is_sequence(b));
         DXTBX_ASSERT(!get_crystal_b.check());
         for (std::size_t i = 0; i < size(); ++i) {
           if (data_[i].get_profile() == a) {
@@ -379,8 +375,8 @@ namespace dxtbx { namespace model {
     /**
      * Get indices which have this model
      */
-    scitbx::af::shared<std::size_t> indices(
-      const boost::shared_ptr<BeamBase> &obj) const {
+    scitbx::af::shared<std::size_t> indices_beam(
+      const boost::python::object &obj) const {
       scitbx::af::shared<std::size_t> result;
       for (std::size_t i = 0; i < size(); ++i) {
         if (data_[i].get_beam() == obj) {
@@ -421,10 +417,10 @@ namespace dxtbx { namespace model {
     /**
      * Get indices which have this model
      */
-    scitbx::af::shared<std::size_t> indices(const boost::shared_ptr<Scan> &obj) const {
+    scitbx::af::shared<std::size_t> indices_sequence(const boost::python::object &obj) const {
       scitbx::af::shared<std::size_t> result;
       for (std::size_t i = 0; i < size(); ++i) {
-        if (data_[i].get_scan() == obj) {
+        if (data_[i].get_sequence() == obj) {
           result.push_back(i);
         }
       }
@@ -445,25 +441,39 @@ namespace dxtbx { namespace model {
       return result;
     }
 
+    bool is_sequence(boost::python::object obj) const{
+      std::string obj_type = boost::python::extract<std::string>(obj.attr("__class__").attr("__name__"));
+      if (obj_type == "Scan" || obj_type == "TOFSequence" || obj_type == "Sequence"){
+        return true;
+      }
+      return false;
+    }
+
+    bool is_beam(boost::python::object obj) const{
+      std::string obj_type = boost::python::extract<std::string>(obj.attr("__class__").attr("__name__"));
+      if (obj_type == "MonochromaticBeam" || obj_type == "TOFBeam"){
+        return true;
+      }
+      return false;
+    }
+
     /**
      * Get indices which have this model
      */
     scitbx::af::shared<std::size_t> indices(boost::python::object obj) const {
-      boost::python::extract<boost::shared_ptr<BeamBase> > get_beam(obj);
       boost::python::extract<boost::shared_ptr<Detector> > get_detector(obj);
       boost::python::extract<boost::shared_ptr<Goniometer> > get_goniometer(obj);
-      boost::python::extract<boost::shared_ptr<Scan> > get_scan(obj);
       boost::python::extract<boost::shared_ptr<CrystalBase> > get_crystal(obj);
-      if (get_beam.check()) {
-        return indices(get_beam());
+      if (get_crystal.check()) {
+        return indices(get_crystal());
       } else if (get_detector.check()) {
         return indices(get_detector());
       } else if (get_goniometer.check()) {
         return indices(get_goniometer());
-      } else if (get_scan.check()) {
-        return indices(get_scan());
-      } else if (get_crystal.check()) {
-        return indices(get_crystal());
+      } else if (is_sequence(obj)) {
+        return indices_sequence(obj);
+      } else if (is_beam(obj)) {
+        return indices_beam(obj);
       }
       scitbx::af::shared<std::size_t> result;
       for (std::size_t i = 0; i < size(); ++i) {
@@ -478,10 +488,10 @@ namespace dxtbx { namespace model {
     /**
      * Get indices which match all the models
      */
-    scitbx::af::shared<std::size_t> where(boost::shared_ptr<BeamBase> beam,
+    scitbx::af::shared<std::size_t> where(boost::python::object beam,
                                           boost::shared_ptr<Detector> detector,
                                           boost::shared_ptr<Goniometer> goniometer,
-                                          boost::shared_ptr<Scan> scan,
+                                          boost::python::object sequence,
                                           boost::shared_ptr<CrystalBase> crystal,
                                           boost::python::object profile,
                                           boost::python::object imageset,
@@ -497,7 +507,7 @@ namespace dxtbx { namespace model {
         if (goniometer && data_[i].get_goniometer() != goniometer) {
           continue;
         }
-        if (scan && data_[i].get_scan() != scan) {
+        if (sequence && data_[i].get_sequence() != sequence) {
           continue;
         }
         if (crystal && data_[i].get_crystal() != crystal) {
@@ -537,6 +547,28 @@ namespace dxtbx { namespace model {
         }
       }
       return true;
+    }
+
+    /**
+     * Returns true if any experiments represent ToF experiments
+     */
+    bool contains_tof_experiments() const{
+      for(std::size_t i = 0; i < size(); ++i){
+        if (data_[i].is_tof_experiment()){
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /**
+     *  Returns true if experiments are a single ToF experiment
+     */
+    bool is_single_tof_experiment() const{
+      if (size() != 1){
+        return false;
+      }
+      return data_[0].is_tof_experiment();
     }
 
   protected:

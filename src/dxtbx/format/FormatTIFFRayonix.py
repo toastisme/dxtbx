@@ -151,7 +151,7 @@ class FormatTIFFRayonix(FormatTIFF):
             struct.unpack(self._i, self._tiff_header_bytes[1932:1936])[0] * 1.0e-5
         )
 
-        return self._beam_factory.simple(wavelength)
+        return self._beam_factory.make_simple_beam(wavelength)
 
     def _scan(self):
         """Return the scan information for this image."""
@@ -164,7 +164,7 @@ class FormatTIFFRayonix(FormatTIFF):
         osc_start = starts[offset]
         osc_range = width
 
-        return self._scan_factory.single_file(
+        return self._sequence_factory.single_file(
             self._image_file, exposure_time, osc_start, osc_range, epoch
         )
 

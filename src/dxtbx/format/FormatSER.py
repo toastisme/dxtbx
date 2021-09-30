@@ -407,7 +407,7 @@ class FormatSERimages(FormatSER):
         # Dummy scan with a 0.5 deg image
         oscillation = (frame * 0.5, 0.5)
         epochs = [0]
-        return self._scan_factory.make_scan(
+        return self._sequence_factory.make_scan(
             (index, index), exposure_times, oscillation, epochs, deg=True
         )
 
@@ -440,7 +440,7 @@ class FormatSERstack(FormatMultiImage, FormatSER):
         oscillation = (0, 0.5)
         epochs = [0] * nframes
 
-        return self._scan_factory.make_scan(
+        return self._sequence_factory.make_scan(
             image_range, exposure_times, oscillation, epochs, deg=True
         )
 
@@ -456,11 +456,11 @@ class FormatSERstack(FormatMultiImage, FormatSER):
     def get_beam(self, index=None):
         return Format.get_beam(self)
 
-    def get_scan(self, index=None):
+    def get_sequence(self, index=None):
         if index is None:
-            return Format.get_scan(self)
+            return Format.get_sequence(self)
         else:
-            scan = Format.get_scan(self)
+            scan = Format.get_sequence(self)
             return scan[index]
 
     def get_image_file(self, index=None):

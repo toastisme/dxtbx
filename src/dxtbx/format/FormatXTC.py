@@ -283,7 +283,7 @@ class FormatXTC(FormatMultiImageLazy, FormatStill, Format):
             else:
                 if self.params.wavelength_offset is not None:
                     wavelength += self.params.wavelength_offset
-                self._beam_cache = self._beam_factory.simple(wavelength)
+                self._beam_cache = self._beam_factory.make_simple_beam(wavelength)
             s, nsec = evt.get(psana.EventId).time()
             evttime = time.gmtime(s)
             if (
@@ -297,7 +297,7 @@ class FormatXTC(FormatMultiImageLazy, FormatStill, Format):
     def get_goniometer(self, index=None):
         return None
 
-    def get_scan(self, index=None):
+    def get_sequence(self, index=None):
         return None
 
 

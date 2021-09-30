@@ -4,19 +4,19 @@ from scitbx import matrix
 from scitbx.array_family import flex
 
 from dxtbx.model import (
-    Beam,
-    BeamFactory,
     Goniometer,
     GoniometerFactory,
+    MonochromaticBeam,
+    MonochromaticBeamFactory,
     Scan,
-    ScanFactory,
+    SequenceFactory,
 )
 
 
 def test_beam():
-    b1 = Beam((1, 0, 0), 2, 0.1, 0.1)
+    b1 = MonochromaticBeam((1, 0, 0), 2, 0.1, 0.1)
     d = b1.to_dict()
-    b2 = BeamFactory.from_dict(d)
+    b2 = MonochromaticBeamFactory.from_dict(d)
     assert d["direction"] == (1, 0, 0)
     assert d["wavelength"] == 2
     assert d["divergence"] == pytest.approx(0.1)
@@ -26,7 +26,7 @@ def test_beam():
 
     # Test with a template and partial dictionary
     d2 = {"direction": (0, 1, 0), "divergence": 0.2}
-    b3 = BeamFactory.from_dict(d2, d)
+    b3 = MonochromaticBeamFactory.from_dict(d2, d)
     assert b3.get_sample_to_source_direction() == (0, 1, 0)
     assert b3.get_wavelength() == 2
     assert b3.get_divergence() == pytest.approx(0.2)
@@ -35,12 +35,12 @@ def test_beam():
 
 
 def test_beam_with_scan_points():
-    b1 = Beam((1, 0, 0), 2, 0.1, 0.1)
+    b1 = MonochromaticBeam((1, 0, 0), 2, 0.1, 0.1)
 
     s0_static = matrix.col(b1.get_s0())
     b1.set_s0_at_scan_points([s0_static] * 5)
     d = b1.to_dict()
-    b2 = BeamFactory.from_dict(d)
+    b2 = MonochromaticBeamFactory.from_dict(d)
 
     for s0comp in d["s0_at_scan_points"]:
         assert matrix.col(s0comp) == s0_static
@@ -120,7 +120,7 @@ def test_scan():
         0,
     )
     d = s1.to_dict()
-    s2 = ScanFactory.from_dict(d)
+    s2 = SequenceFactory.from_dict(d)
     assert d["image_range"] == (1, 3)
     assert d["oscillation"] == (1.0, 0.2)
     assert d["exposure_time"] == [0.1, 0.1, 0.1]
@@ -130,7 +130,7 @@ def test_scan():
 
     # Test with a template and partial dictionary
     d2 = {"exposure_time": [0.2, 0.2, 0.2]}
-    s3 = ScanFactory.from_dict(d2, d)
+    s3 = SequenceFactory.from_dict(d2, d)
     assert s3.get_image_range() == (1, 3)
     assert s3.get_oscillation() == (1.0, 0.2)
     assert list(s3.get_exposure_times()) == [0.2, 0.2, 0.2]
@@ -139,11 +139,11 @@ def test_scan():
 
     # Test with a partial epoch
     d3 = {"image_range": (1, 10), "epochs": [0.1, 0.2]}
-    s4 = ScanFactory.from_dict(d3, d)
+    s4 = SequenceFactory.from_dict(d3, d)
     assert s4.get_epochs()[2] == pytest.approx(0.3)
     assert s4.get_epochs()[9] == pytest.approx(1.0)
 
     d4 = {"batch_offset": 100}
-    s5 = ScanFactory.from_dict(d4, d)
+    s5 = SequenceFactory.from_dict(d4, d)
     assert s5.get_batch_offset() == 100
     assert s5.get_batch_range() == (101, 103)

@@ -1,5 +1,5 @@
 /*
- * scan.h
+ * sequence.h
  *
  *  Copyright (C) 2013 Diamond Light Source
  *
@@ -29,109 +29,58 @@ namespace dxtbx { namespace model {
 
   typedef std::map<std::string, scitbx::af::shared<vec2<int> > > ExpImgRangeMap;
 
-  /** A scan base class */
-  class ScanBase {};
+  /** A class containing minimal information for a sequence of images */
+  class Sequence {
 
-  /** A class to represent a scan */
-  class Scan : public ScanBase {
   public:
-    /** The default constructor */
-    Scan()
-        : image_range_(0, 0),
-          oscillation_(0.0, 0.0),
-          num_images_(0),
-          batch_offset_(0),
-          is_still_(false) {}
+
+    Sequence()
+      : image_range_(0,0),
+        num_images_(0),
+        batch_offset_(0){}
 
     /**
-     * Initialise the class
-     * @param image_range The range of images covered by the scan
-     * @param oscillation A tuple containing the start angle of the first image
-     *                    and the oscillation range (the angular width) of each
-     *                    frame
+     * @param image_range The range of images covered by the sequence
      * @param batch_offset A offset to add to the image number (for tracking of
      *                     unique batch numbers for multi-crystal datasets)
      */
-    Scan(vec2<int> image_range, vec2<double> oscillation, int batch_offset = 0)
+    Sequence(vec2<int> image_range, int batch_offset = 0)
         : image_range_(image_range),
-          oscillation_(oscillation),
           num_images_(1 + image_range_[1] - image_range_[0]),
-          batch_offset_(batch_offset),
-          exposure_times_(num_images_, 0.0),
-          epochs_(num_images_, 0.0) {
+          batch_offset_(batch_offset){
       DXTBX_ASSERT(num_images_ >= 0);
-      if (oscillation[1] != 0.0) {
-        is_still_ = false;
-      } else {
-        is_still_ = true;
-      }
     }
 
-    /**
-     * Initialise the class
-     * @param image_range The range of images covered by the scan
-     * @param oscillation A tuple containing the start angle of the first image
-     *                    and the oscillation range (the angular width) of each
-     *                    frame
-     * @param exposure_times The exposure duration of each image
-     * @param epochs The time of capture for each image
-     * @param batch_offset A offset to add to the image number (for tracking of
-     *                     unique batch numbers for multi-crystal datasets)
-     */
-    Scan(vec2<int> image_range,
-         vec2<double> oscillation,
-         const scitbx::af::shared<double> &exposure_times,
-         const scitbx::af::shared<double> &epochs,
-         int batch_offset = 0)
-        : image_range_(image_range),
-          oscillation_(oscillation),
-          num_images_(1 + image_range_[1] - image_range_[0]),
-          batch_offset_(batch_offset),
-          exposure_times_(exposure_times),
-          epochs_(epochs) {
-      DXTBX_ASSERT(num_images_ >= 0);
-      if (oscillation[1] != 0.0) {
-        is_still_ = false;
-      } else {
-        is_still_ = true;
-      }
-      if (exposure_times_.size() == 1 && num_images_ > 1) {
-        // assume same exposure time for all images - there is
-        // probably a better way of coding this...
-        scitbx::af::shared<double> expanded_exposure_times;
-        expanded_exposure_times.reserve(num_images_);
-        for (int j = 0; j < num_images_; j++) {
-          expanded_exposure_times.push_back(exposure_times[0]);
-          exposure_times_ = expanded_exposure_times;
-        }
-      }
-      DXTBX_ASSERT(exposure_times_.size() == num_images_);
-      DXTBX_ASSERT(epochs_.size() == num_images_);
-      DXTBX_ASSERT(oscillation_[1] >= 0.0);
+    virtual ~Sequence() {}
+
+    int get_num_images() const {
+      return num_images_;
     }
 
-    /** Copy */
-    Scan(const Scan &rhs)
-        : image_range_(rhs.image_range_),
-          valid_image_ranges_(rhs.valid_image_ranges_),
-          oscillation_(rhs.oscillation_),
-          num_images_(rhs.num_images_),
-          batch_offset_(rhs.batch_offset_),
-          is_still_(rhs.is_still_),
-          exposure_times_(scitbx::af::reserve(rhs.exposure_times_.size())),
-          epochs_(scitbx::af::reserve(rhs.epochs_.size())) {
-      std::copy(rhs.epochs_.begin(), rhs.epochs_.end(), std::back_inserter(epochs_));
-      std::copy(rhs.exposure_times_.begin(),
-                rhs.exposure_times_.end(),
-                std::back_inserter(exposure_times_));
-    }
-
-    /** Virtual destructor */
-    virtual ~Scan() {}
-
-    /** Get the image range */
     vec2<int> get_image_range() const {
       return image_range_;
+    }
+
+    int get_batch_offset() const {
+      return batch_offset_;
+    }
+
+    int get_batch_for_image_index(int index) const {
+      return index + batch_offset_;
+    }
+
+    int get_batch_for_array_index(int index) const {
+      return index + batch_offset_ + 1;
+    }
+
+    vec2<int> get_batch_range() const {
+      return vec2<int>(image_range_[0] + batch_offset_,
+                       image_range_[1] + batch_offset_);
+    }
+
+    /** (zero based) */
+    vec2<int> get_array_range() const {
+      return vec2<int>(image_range_[0] - 1, image_range_[1]);
     }
 
     /** Get the map, not exported to python **/
@@ -165,45 +114,254 @@ namespace dxtbx { namespace model {
       valid_image_ranges_[i] = values;
     }
 
-    /** Get the batch offset */
-    int get_batch_offset() const {
-      return batch_offset_;
+    void set_batch_offset(int batch_offset) {
+      batch_offset_ = batch_offset;
     }
+
+    virtual void set_image_range(vec2<int> image_range) {
+      image_range_ = image_range;
+      num_images_ = 1 + image_range_[1] - image_range_[0];
+      DXTBX_ASSERT(num_images_ > 0);
+    }
+
+    bool is_image_index_valid(double index) const {
+      return (image_range_[0] <= index && index <= image_range_[1]);
+    }
+
+    bool is_batch_valid(int batch) const {
+      vec2<int> batch_range = get_batch_range();
+      return (batch_range[0] <= batch && batch <= batch_range[1]);
+    }
+
+    bool is_array_index_valid(double index) const {
+      return is_image_index_valid(index + 1);
+    }
+
+    /** Comparison operator */
+    bool operator<(const Sequence &sequence) const {
+      return image_range_[0] < sequence.get_image_range()[0];
+    }
+
+    /** Comparison operator */
+    bool operator<=(const Sequence &sequence) const {
+      return get_image_range()[0] <= sequence.get_image_range()[0];
+    }
+
+    /** Comparison operator */
+    bool operator>(const Sequence &sequence) const {
+      return get_image_range()[0] > sequence.get_image_range()[0];
+    }
+
+    /** Comparison operator */
+    bool operator>=(const Sequence &sequence) const {
+      return get_image_range()[0] >= sequence.get_image_range()[0];
+    }
+    
+  protected:
+    vec2<int> image_range_;
+    ExpImgRangeMap valid_image_ranges_; /** initialised as an empty map **/
+    int num_images_;
+    int batch_offset_;
+
+  };
+
+  /** A class to represent a ToF sequence of images */
+  class TOFSequence : public Sequence{
+  public:
+
+    TOFSequence()
+        : Sequence((0,0), 0),
+          tof_in_seconds_(num_images_, 0){}
+
+    /**
+     * @param image_range The range of images covered by the sequence
+     * @param tof_in_seconds The ToF values of each image
+     * @param batch_offset An offset to add to the image number (for tracking
+     *                      unique batch numbers for multi-crystal datasets)
+     * 
+     */
+    TOFSequence(vec2<int> image_range, 
+                const scitbx::af::shared<double> &tof_in_seconds,
+                int batch_offset=0)
+                : Sequence(image_range, batch_offset),
+                tof_in_seconds_(tof_in_seconds){
+                }
+
+    virtual ~TOFSequence() {}
+
+    scitbx::af::shared<double> get_tof_in_seconds() const {
+      return tof_in_seconds_;
+    }
+
+    double get_image_tof(int index) const {
+      DXTBX_ASSERT(image_range_[0] <= index && index <= image_range_[1]);
+      return tof_in_seconds_[index - image_range_[0]];
+    }
+
+    void set_tof_in_seconds(scitbx::af::shared<double> tof_in_seconds){
+      tof_in_seconds_ = tof_in_seconds;
+    }
+
+    void append(const TOFSequence &rhs) {
+      DXTBX_ASSERT(image_range_[1] + 1 == rhs.image_range_[0]);
+      DXTBX_ASSERT(batch_offset_ == rhs.batch_offset_);
+      image_range_[1] = rhs.image_range_[1];
+      num_images_ = 1 + image_range_[1] - image_range_[0];
+    }
+
+    /** Check the sequences are the same */
+    bool operator==(const TOFSequence &rhs) const {
+      double eps = 1e-7;
+      return get_image_range() == rhs.get_image_range() 
+             && get_batch_offset() == rhs.get_batch_offset()
+             && tof_in_seconds_.const_ref().all_approx_equal(
+               rhs.tof_in_seconds_.const_ref(), eps);
+    }
+
+    /** Check the scans are not the same */
+    bool operator!=(const TOFSequence &sequence) const {
+      return !(*this == sequence);
+    }
+
+    TOFSequence operator[](int index) const {
+      // Check index
+      DXTBX_ASSERT((index >= 0) && (index < get_num_images()));
+      int image_index = get_image_range()[0] + index;
+
+      scitbx::af::shared<double> new_tof_in_seconds(1);
+      new_tof_in_seconds[0] = get_image_tof(image_index);
+
+      // Return scan
+      return TOFSequence(vec2<int>(image_index, image_index),
+                  new_tof_in_seconds,
+                  get_batch_offset());
+    }
+
+    /**
+     * Append the rhs sequence onto the current sequence
+     */
+    TOFSequence &operator+=(const TOFSequence &rhs) {
+      // Set the epsilon to 1% of oscillation range
+      append(rhs);
+      return *this;
+    }
+
+    /**
+     * Return a new sequence which consists of the contents of this sequence and
+     * the contents of the other sequence, provided that they are consistent.
+     * If they are not consistent then an AssertionError will result.
+     */
+    TOFSequence operator+(const TOFSequence &rhs) const {
+      TOFSequence lhs(*this);
+      lhs += rhs;
+      return lhs;
+    }
+
+    
+  friend std::ostream &operator<<(std::ostream &os, const TOFSequence &s);
+
+  private:
+    scitbx::af::shared<double> tof_in_seconds_;
+    
+
+  };
+
+  /** A class to represent a scan */
+  class Scan : public Sequence {
+  public:
+    /** The default constructor */
+    Scan()
+        : Sequence((0, 0), 0),
+          oscillation_(0.0, 0.0),
+          is_still_(false) {}
+
+    /**
+     * Initialise the class
+     * @param image_range The range of images covered by the scan
+     * @param oscillation A tuple containing the start angle of the first image
+     *                    and the oscillation range (the angular width) of each
+     *                    frame
+     * @param batch_offset A offset to add to the image number (for tracking of
+     *                     unique batch numbers for multi-crystal datasets)
+     */
+    Scan(vec2<int> image_range, vec2<double> oscillation, int batch_offset = 0)
+        : Sequence(image_range, batch_offset),
+          oscillation_(oscillation),
+          exposure_times_(num_images_, 0.0),
+          epochs_(num_images_, 0.0) {
+      DXTBX_ASSERT(num_images_ >= 0);
+      if (oscillation[1] != 0.0) {
+        is_still_ = false;
+      } else {
+        is_still_ = true;
+      }
+    }
+
+    /**
+     * Initialise the class
+     * @param image_range The range of images covered by the scan
+     * @param oscillation A tuple containing the start angle of the first image
+     *                    and the oscillation range (the angular width) of each
+     *                    frame
+     * @param exposure_times The exposure duration of each image
+     * @param epochs The time of capture for each image
+     * @param batch_offset A offset to add to the image number (for tracking of
+     *                     unique batch numbers for multi-crystal datasets)
+     */
+    Scan(vec2<int> image_range,
+         vec2<double> oscillation,
+         const scitbx::af::shared<double> &exposure_times,
+         const scitbx::af::shared<double> &epochs,
+         int batch_offset = 0)
+        : Sequence(image_range, batch_offset),
+          oscillation_(oscillation),
+          exposure_times_(exposure_times),
+          epochs_(epochs) {
+      DXTBX_ASSERT(num_images_ >= 0);
+      if (oscillation[1] != 0.0) {
+        is_still_ = false;
+      } else {
+        is_still_ = true;
+      }
+      if (exposure_times_.size() == 1 && num_images_ > 1) {
+        // assume same exposure time for all images - there is
+        // probably a better way of coding this...
+        scitbx::af::shared<double> expanded_exposure_times;
+        expanded_exposure_times.reserve(num_images_);
+        for (int j = 0; j < num_images_; j++) {
+          expanded_exposure_times.push_back(exposure_times[0]);
+          exposure_times_ = expanded_exposure_times;
+        }
+      }
+      DXTBX_ASSERT(exposure_times_.size() == num_images_);
+      DXTBX_ASSERT(epochs_.size() == num_images_);
+      DXTBX_ASSERT(oscillation_[1] >= 0.0);
+    }
+
+    /** Copy */
+    Scan(const Scan &rhs)
+        : Sequence(rhs.image_range_, rhs.batch_offset_),
+          oscillation_(rhs.oscillation_),
+          is_still_(rhs.is_still_),
+          exposure_times_(scitbx::af::reserve(rhs.exposure_times_.size())),
+          epochs_(scitbx::af::reserve(rhs.epochs_.size())) {
+      std::copy(rhs.epochs_.begin(), rhs.epochs_.end(), std::back_inserter(epochs_));
+      std::copy(rhs.exposure_times_.begin(),
+                rhs.exposure_times_.end(),
+                std::back_inserter(exposure_times_));
+    }
+
+    /** Virtual destructor */
+    virtual ~Scan() {}
 
     /** Get the still flag */
     bool is_still() const {
       return is_still_;
     }
 
-    /** Get the batch number for a given image index */
-    int get_batch_for_image_index(int index) const {
-      return index + batch_offset_;
-    }
-
-    /** Get the batch number for a given array index */
-    int get_batch_for_array_index(int index) const {
-      return index + batch_offset_ + 1;
-    }
-
-    /** Get the batch range */
-    vec2<int> get_batch_range() const {
-      return vec2<int>(image_range_[0] + batch_offset_,
-                       image_range_[1] + batch_offset_);
-    }
-
-    /** Get the array range (zero based) */
-    vec2<int> get_array_range() const {
-      return vec2<int>(image_range_[0] - 1, image_range_[1]);
-    }
-
     /** Get the oscillation */
     vec2<double> get_oscillation() const {
       return oscillation_;
-    }
-
-    /** Get the number of images */
-    int get_num_images() const {
-      return num_images_;
     }
 
     /** Get the exposure time */
@@ -217,17 +375,12 @@ namespace dxtbx { namespace model {
     }
 
     /** Set the image range */
-    void set_image_range(vec2<int> image_range) {
+    void set_image_range(vec2<int> image_range) override {
       image_range_ = image_range;
       num_images_ = 1 + image_range_[1] - image_range_[0];
       epochs_.resize(num_images_);
       exposure_times_.resize(num_images_);
       DXTBX_ASSERT(num_images_ > 0);
-    }
-
-    /** Set the batch_offset */
-    void set_batch_offset(int batch_offset) {
-      batch_offset_ = batch_offset;
     }
 
     /** Set the oscillation */
@@ -295,26 +448,6 @@ namespace dxtbx { namespace model {
     /** Check the scans are not the same */
     bool operator!=(const Scan &scan) const {
       return !(*this == scan);
-    }
-
-    /** Comparison operator */
-    bool operator<(const Scan &scan) const {
-      return image_range_[0] < scan.image_range_[0];
-    }
-
-    /** Comparison operator */
-    bool operator<=(const Scan &scan) const {
-      return image_range_[0] <= scan.image_range_[0];
-    }
-
-    /** Comparison operator */
-    bool operator>(const Scan &scan) const {
-      return image_range_[0] > scan.image_range_[0];
-    }
-
-    /** Comparison operator */
-    bool operator>=(const Scan &scan) const {
-      return image_range_[0] >= scan.image_range_[0];
     }
 
     /**
@@ -391,22 +524,6 @@ namespace dxtbx { namespace model {
      */
     bool is_angle_valid(double angle) const {
       return is_angle_in_range(get_oscillation_range(), angle);
-    }
-
-    /** Check if the index is valid */
-    bool is_image_index_valid(double index) const {
-      return (image_range_[0] <= index && index <= image_range_[1]);
-    }
-
-    /** Check if a given batch is valid */
-    bool is_batch_valid(int batch) const {
-      vec2<int> batch_range = get_batch_range();
-      return (batch_range[0] <= batch && batch <= batch_range[1]);
-    }
-
-    /** Check if the array index is valid */
-    bool is_array_index_valid(double index) const {
-      return is_image_index_valid(index + 1);
     }
 
     /**
@@ -514,11 +631,7 @@ namespace dxtbx { namespace model {
     friend std::ostream &operator<<(std::ostream &os, const Scan &s);
 
   private:
-    vec2<int> image_range_;
-    ExpImgRangeMap valid_image_ranges_; /** initialised as an empty map **/
     vec2<double> oscillation_;
-    int num_images_;
-    int batch_offset_;
     bool is_still_;
     scitbx::af::shared<double> exposure_times_;
     scitbx::af::shared<double> epochs_;
@@ -537,6 +650,15 @@ namespace dxtbx { namespace model {
     if (s.num_images_ > 0) {
       os << "    exposure time: " << s.exposure_times_.const_ref()[0] << "\n";
     }
+    return os;
+  }
+
+  /** Print TOFSequence information */
+  inline std::ostream &operator<<(std::ostream &os, const TOFSequence &s) {
+    os << "ToF Sequence:\n";
+    os << "    number of images:   " << s.get_num_images() << "\n";
+    os << "    image range:   " << s.get_image_range().const_ref() << "\n";
+    os << "    ToF range:   " << s.tof_in_seconds_.const_ref() << "\n";
     return os;
   }
 

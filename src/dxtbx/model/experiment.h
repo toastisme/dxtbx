@@ -22,7 +22,7 @@
 #include <dxtbx/model/beam.h>
 #include <dxtbx/model/detector.h>
 #include <dxtbx/model/goniometer.h>
-#include <dxtbx/model/scan.h>
+#include <dxtbx/model/sequence.h>
 #include <dxtbx/model/crystal.h>
 #include <dxtbx/error.h>
 
@@ -32,11 +32,13 @@ namespace dxtbx { namespace model {
    * A class to represent what's in an experiment.
    *
    * Contains:
-   *   - imageset Access to the image data
-   *   - beam The beam model
+   *   - imageset Access to the image data 
+   *    (ImageSet, ImageSetLazy, ImageSequence, 
+   *     ImageGrid, ImageSequence)
+   *   - beam The beam model (MonochromaticBeam, TOFBeam)
    *   - detector The detector model
    *   - goniometer The goniometer model
-   *   - scan The scan model
+   *   - sequence The sequence model (Sequence, Scan, TOFSequence)
    *   - crystal The crystal model
    *   - profile The profile model
    *   - scaling_model The scaling model
@@ -51,10 +53,10 @@ namespace dxtbx { namespace model {
     /**
      * Initialise the experiment with models
      */
-    Experiment(boost::shared_ptr<BeamBase> beam,
+    Experiment(boost::python::object beam,
                boost::shared_ptr<Detector> detector,
                boost::shared_ptr<Goniometer> goniometer,
-               boost::shared_ptr<Scan> scan,
+               boost::python::object sequence,
                boost::shared_ptr<CrystalBase> crystal,
                boost::python::object profile,
                boost::python::object imageset,
@@ -63,7 +65,7 @@ namespace dxtbx { namespace model {
         : beam_(beam),
           detector_(detector),
           goniometer_(goniometer),
-          scan_(scan),
+          sequence_(sequence),
           crystal_(crystal),
           profile_(profile),
           imageset_(imageset),
@@ -73,7 +75,7 @@ namespace dxtbx { namespace model {
     /**
      * Check if the beam model is the same.
      */
-    bool contains(const boost::shared_ptr<BeamBase> &beam) const {
+    bool contains_beam(const boost::python::object &beam) const {
       return beam_ == beam;
     }
 
@@ -94,8 +96,8 @@ namespace dxtbx { namespace model {
     /**
      * Check if the goniometer model is the same.
      */
-    bool contains(const boost::shared_ptr<Scan> &scan) const {
-      return scan_ == scan;
+    bool contains_sequence(const boost::python::object &sequence) const {
+      return sequence_ == sequence;
     }
 
     /**
@@ -109,19 +111,19 @@ namespace dxtbx { namespace model {
      * Check models are the same.
      */
     bool contains(boost::python::object obj) const {
-      boost::python::extract<boost::shared_ptr<BeamBase> > get_beam(obj);
+      boost::python::extract<boost::python::object > get_beam(obj);
       boost::python::extract<boost::shared_ptr<Detector> > get_detector(obj);
       boost::python::extract<boost::shared_ptr<Goniometer> > get_goniometer(obj);
-      boost::python::extract<boost::shared_ptr<Scan> > get_scan(obj);
+      boost::python::extract<boost::python::object > get_sequence(obj);
       boost::python::extract<boost::shared_ptr<CrystalBase> > get_crystal(obj);
       if (get_beam.check()) {
-        return contains(get_beam());
+        return contains_beam(get_beam());
       } else if (get_detector.check()) {
         return contains(get_detector());
       } else if (get_goniometer.check()) {
         return contains(get_goniometer());
-      } else if (get_scan.check()) {
-        return contains(get_scan());
+      } else if (get_sequence.check()) {
+        return contains_sequence(get_sequence());
       } else if (get_crystal.check()) {
         return contains(get_crystal());
       }
@@ -134,7 +136,7 @@ namespace dxtbx { namespace model {
     bool operator==(const Experiment &other) const {
       return imageset_ == other.imageset_ && beam_ == other.beam_
              && detector_ == other.detector_ && goniometer_ == other.goniometer_
-             && scan_ == other.scan_ && profile_ == other.profile_
+             && sequence_ == other.sequence_ && profile_ == other.profile_
              && scaling_model_ == other.scaling_model_
              && identifier_ == other.identifier_;
     }
@@ -150,7 +152,14 @@ namespace dxtbx { namespace model {
      * Check if this experiment represents a still image
      */
     bool is_still() const {
-      return !goniometer_ || !scan_ || scan_->get_oscillation()[1] == 0.0;
+      if (!goniometer_){return true;} 
+      if (!sequence_){return true;} 
+      std::string sequence_type = boost::python::extract<std::string>(sequence_.attr("__class__").attr("__name__"));
+      if (sequence_type == "Scan"){
+        Scan scan = boost::python::extract<Scan>(sequence_);
+        return scan.get_oscillation()[1] == 0.0;
+      }
+      return false;
     }
 
     /**
@@ -160,17 +169,34 @@ namespace dxtbx { namespace model {
       return !is_still();
     }
 
+    bool is_tof_experiment() const{
+      if (!sequence_){return false;}
+      std::string sequence_type = boost::python::extract<std::string>(sequence_.attr("__class__").attr("__name__"));
+      if (sequence_type != "TOFSequence"){
+        return false;
+      }
+      std::string beam_type = boost::python::extract<std::string>(beam_.attr("__class__").attr("__name__"));
+      if (beam_type != "TOFBeam"){
+        return false;
+      }
+      std::string imageset_type = boost::python::extract<std::string>(imageset_.attr("__class__").attr("__name__"));
+      if(imageset_type != "ImageSequence"){
+        return false;
+      }
+      return true;
+    }
+
     /**
      * Set the beam model
      */
-    void set_beam(boost::shared_ptr<BeamBase> beam) {
+    void set_beam(boost::python::object beam) {
       beam_ = beam;
     }
 
     /**
      * Get the beam model
      */
-    boost::shared_ptr<BeamBase> get_beam() const {
+    boost::python::object get_beam() const {
       return beam_;
     }
 
@@ -203,17 +229,17 @@ namespace dxtbx { namespace model {
     }
 
     /**
-     * Get the scan model
+     * Get the sequence model
      */
-    void set_scan(boost::shared_ptr<Scan> scan) {
-      scan_ = scan;
+    void set_sequence(boost::python::object sequence) {
+      sequence_ = sequence;
     }
 
     /**
-     * Get the scan model
+     * Get the sequence model
      */
-    boost::shared_ptr<Scan> get_scan() const {
-      return scan_;
+    boost::python::object get_sequence() const {
+      return sequence_;
     }
 
     /**
@@ -287,10 +313,10 @@ namespace dxtbx { namespace model {
     }
 
   protected:
-    boost::shared_ptr<BeamBase> beam_;
+    boost::python::object beam_;
     boost::shared_ptr<Detector> detector_;
     boost::shared_ptr<Goniometer> goniometer_;
-    boost::shared_ptr<Scan> scan_;
+    boost::python::object sequence_;
     boost::shared_ptr<CrystalBase> crystal_;
     boost::python::object profile_;
     boost::python::object imageset_;

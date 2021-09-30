@@ -25,80 +25,83 @@ namespace dxtbx { namespace model {
   using scitbx::vec3;
 
   /** Base class for beam objects */
-  class BeamBase {
+  class Beam {
   public:
-    virtual ~BeamBase() {}
+    virtual ~Beam() {}
 
     // Get the direction
     virtual vec3<double> get_sample_to_source_direction() const = 0;
-    // Get the wavelength
-    virtual double get_wavelength() const = 0;
-    // Get the beam divergence
-    virtual double get_divergence() const = 0;
-    // Get the standard deviation of the beam divergence
-    virtual double get_sigma_divergence() const = 0;
     // Set the direction.
-    virtual void set_direction(vec3<double> direction) = 0;
-    // Set the wavelength
-    virtual void set_wavelength(double wavelength) = 0;
-    // Get the wave vector in units of inverse angstroms
-    virtual vec3<double> get_s0() const = 0;
-    // Set the direction and wavelength from s0
-    virtual void set_s0(vec3<double> s0) = 0;
-    // Get the wave vector from source to sample with unit length
-    virtual vec3<double> get_unit_s0() const = 0;
-    // Set the direction using the unit_s0 vector
-    virtual void set_unit_s0(vec3<double> unit_s0) = 0;
-    // Set the beam divergence
-    virtual void set_divergence(double divergence) = 0;
-    // Set the standard deviation of the beam divergence
-    virtual void set_sigma_divergence(double sigma_divergence) = 0;
-    // Get the polarization
-    virtual vec3<double> get_polarization_normal() const = 0;
-    // Get the polarization fraction
-    virtual double get_polarization_fraction() const = 0;
-    // Set the polarization plane
-    virtual void set_polarization_normal(vec3<double> polarization_normal) = 0;
-    // Set the polarization fraction
-    virtual void set_polarization_fraction(double polarization_fraction) = 0;
-    // Set the flux
-    virtual void set_flux(double flux) = 0;
-    // Set the transmission
-    virtual void set_transmission(double transmission) = 0;
-    // Get the flux
-    virtual double get_flux() const = 0;
-    // Get the transmission
-    virtual double get_transmission() const = 0;
-    // @returns the number of scan points
-    virtual std::size_t get_num_scan_points() const = 0;
-    // Set the s0 vector at scan points
-    virtual void set_s0_at_scan_points(
-      const scitbx::af::const_ref<vec3<double> > &s0) = 0;
-    // Get the s0 vector at scan points
-    virtual scitbx::af::shared<vec3<double> > get_s0_at_scan_points() const = 0;
-    // Get the s0 vector at the scan point
-    virtual vec3<double> get_s0_at_scan_point(std::size_t index) const = 0;
-    // Reset the scan points
-    virtual void reset_scan_points() = 0;
-    // Check wavelength and direction are (almost) same
-    virtual bool operator==(const BeamBase &rhs) const = 0;
-    // Check if two models are similar
-    virtual bool is_similar_to(const BeamBase &rhs,
-                               double wavelength_tolerance,
-                               double direction_tolerance,
-                               double polarization_normal_tolerance,
-                               double polarization_fraction_tolerance) const = 0;
-    // Check wavelength and direction are not (almost) equal.
-    virtual bool operator!=(const BeamBase &rhs) const = 0;
+    virtual void set_sample_to_source_direction(vec3<double> direction) = 0;
     //  Rotate the beam about an axis
     virtual void rotate_around_origin(vec3<double> axis, double angle) = 0;
+    virtual vec3<double> get_unit_s0() const = 0;
+    virtual void set_unit_s0(vec3<double> unit_s0) = 0; 
+  };
+
+  class TOFBeam : public Beam{
+  public:
+
+    TOFBeam()
+      : direction_(0.0, 0.0, 0.0),
+        sample_to_moderator_distance_(0) {}
+
+    /**
+     * @param direction unit vector from sample to source
+     * @param sample_to_moderator_distance (mm)
+     */
+    TOFBeam(vec3<double> direction, double sample_to_moderator_distance)
+        : direction_(direction),
+          sample_to_moderator_distance_(sample_to_moderator_distance) {}
+
+    virtual ~TOFBeam() {}
+
+    vec3<double> get_sample_to_source_direction() const override {
+      DXTBX_ASSERT(direction_.length() > 0);
+      return direction_;
+    }
+
+    double get_sample_to_moderator_distance() const {
+      DXTBX_ASSERT(sample_to_moderator_distance_ > 0);
+      return sample_to_moderator_distance_;
+    }
+
+    void set_sample_to_source_direction(vec3<double> direction) override{
+      DXTBX_ASSERT(direction.length() > 0);
+      direction_ = direction.normalize();
+    }
+
+    void set_sample_to_moderator_distance(float sample_to_moderator_distance){
+      DXTBX_ASSERT(sample_to_moderator_distance > 0);
+      sample_to_moderator_distance_ = sample_to_moderator_distance;
+    }
+
+    void rotate_around_origin(vec3<double> axis, double angle) override {
+      direction_ = direction_.rotate_around_origin(axis, angle);
+    }
+
+    /** Get the wave vector from source to sample with unit length */
+    vec3<double> get_unit_s0() const {
+      return -direction_;
+    }
+
+    /** Set the direction using the unit_s0 vector */
+    void set_unit_s0(vec3<double> unit_s0) {
+      DXTBX_ASSERT(unit_s0.length() > 0);
+      direction_ = -(unit_s0.normalize());
+    }
+
+  private:
+    vec3<double> direction_;
+    double sample_to_moderator_distance_;
+
   };
 
   /** A class to represent a simple beam. */
-  class Beam : public BeamBase {
+  class MonochromaticBeam : public Beam {
   public:
     /** Default constructor: initialise all to zero */
-    Beam()
+    MonochromaticBeam()
         : wavelength_(0.0),
           direction_(0.0, 0.0, 1.0),
           divergence_(0.0),
@@ -112,7 +115,7 @@ namespace dxtbx { namespace model {
      * Initialise all the beam parameters.
      * @param direction The beam direction vector.
      */
-    Beam(vec3<double> s0)
+    MonochromaticBeam(vec3<double> s0)
         : divergence_(0.0),
           sigma_divergence_(0.0),
           polarization_normal_(0.0, 1.0, 0.0),
@@ -130,7 +133,7 @@ namespace dxtbx { namespace model {
      * @param wavelength The wavelength of the beam
      * @param direction The beam direction vector.
      */
-    Beam(vec3<double> direction, double wavelength)
+    MonochromaticBeam(vec3<double> direction, double wavelength)
         : wavelength_(wavelength),
           divergence_(0.0),
           sigma_divergence_(0.0),
@@ -146,7 +149,7 @@ namespace dxtbx { namespace model {
      * Initialise all the beam parameters.
      * @param direction The beam direction vector.
      */
-    Beam(vec3<double> s0, double divergence, double sigma_divergence)
+    MonochromaticBeam(vec3<double> s0, double divergence, double sigma_divergence)
         : divergence_(divergence),
           sigma_divergence_(sigma_divergence),
           polarization_normal_(0.0, 1.0, 0.0),
@@ -164,7 +167,7 @@ namespace dxtbx { namespace model {
      * @param wavelength The wavelength of the beam
      * @param direction The beam direction vector.
      */
-    Beam(vec3<double> direction,
+    MonochromaticBeam(vec3<double> direction,
          double wavelength,
          double divergence,
          double sigma_divergence)
@@ -179,7 +182,7 @@ namespace dxtbx { namespace model {
       direction_ = direction.normalize();
     }
 
-    Beam(vec3<double> direction,
+    MonochromaticBeam(vec3<double> direction,
          double wavelength,
          double divergence,
          double sigma_divergence,
@@ -199,7 +202,7 @@ namespace dxtbx { namespace model {
     }
 
     /** Virtual destructor */
-    virtual ~Beam() {}
+    virtual ~MonochromaticBeam() {}
 
     /** Get the direction */
     vec3<double> get_sample_to_source_direction() const {
@@ -208,6 +211,7 @@ namespace dxtbx { namespace model {
 
     /** Get the wavelength */
     double get_wavelength() const {
+      DXTBX_ASSERT(wavelength_ > 0.0);
       return wavelength_;
     }
 
@@ -222,7 +226,7 @@ namespace dxtbx { namespace model {
     }
 
     /** Set the direction. */
-    void set_direction(vec3<double> direction) {
+    void set_sample_to_source_direction(vec3<double> direction) {
       DXTBX_ASSERT(direction.length() > 0);
       direction_ = direction.normalize();
     }
@@ -234,7 +238,7 @@ namespace dxtbx { namespace model {
 
     /** Get the wave vector in units of inverse angstroms */
     vec3<double> get_s0() const {
-      DXTBX_ASSERT(wavelength_ != 0.0);
+      DXTBX_ASSERT(wavelength_ > 0.0);
       return -direction_ * 1.0 / wavelength_;
     }
 
@@ -351,7 +355,7 @@ namespace dxtbx { namespace model {
     }
 
     /** Check two beam models are (almost) the same */
-    bool operator==(const BeamBase &rhs) const {
+    bool operator==(const MonochromaticBeam &rhs) const {
       double eps = 1.0e-6;
 
       // scan-varying model checks
@@ -388,7 +392,7 @@ namespace dxtbx { namespace model {
     /**
      * Check if two models are similar
      */
-    bool is_similar_to(const BeamBase &rhs,
+    bool is_similar_to(const MonochromaticBeam &rhs,
                        double wavelength_tolerance,
                        double direction_tolerance,
                        double polarization_normal_tolerance,
@@ -426,7 +430,7 @@ namespace dxtbx { namespace model {
     }
 
     /** Check two beam models are not (almost) the same. */
-    bool operator!=(const BeamBase &rhs) const {
+    bool operator!=(const MonochromaticBeam &rhs) const {
       return !(*this == rhs);
     }
 
@@ -438,7 +442,7 @@ namespace dxtbx { namespace model {
       polarization_normal_ = polarization_normal_.rotate_around_origin(axis, angle);
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const Beam &b);
+    friend std::ostream &operator<<(std::ostream &os, const MonochromaticBeam &b);
 
   private:
     double wavelength_;
@@ -453,8 +457,8 @@ namespace dxtbx { namespace model {
   };
 
   /** Print beam information */
-  inline std::ostream &operator<<(std::ostream &os, const Beam &b) {
-    os << "Beam:\n";
+  inline std::ostream &operator<<(std::ostream &os, const MonochromaticBeam &b) {
+    os << "MonochromaticBeam:\n";
     os << "    wavelength: " << b.get_wavelength() << "\n";
     os << "    sample to source direction : "
        << b.get_sample_to_source_direction().const_ref() << "\n";

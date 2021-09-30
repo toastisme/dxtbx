@@ -15,6 +15,7 @@ from dxtbx_imageset_ext import (
 
 ext = boost_adaptbx.boost.python.import_ext("dxtbx_ext")
 
+from enum import Enum
 from typing import Iterable, List
 
 __all__ = (
@@ -23,12 +24,18 @@ __all__ = (
     "ExternalLookupItemDouble",
     "ImageGrid",
     "ImageSet",
+    "ImageSequence",
     "ImageSetData",
     "ImageSetFactory",
     "ImageSetLazy",
-    "ImageSequence",
     "MemReader",
 )
+
+
+class ImageSetType(Enum):
+    ImageSet = 1
+    ImageSetLazy = 2
+    ImageSequence = 3
 
 
 def _expand_template(template: str, indices: Iterable[int]) -> List[str]:
@@ -164,6 +171,10 @@ class _:
         """
         return [self.get_path(i) for i in range(len(self))]
 
+    @staticmethod
+    def is_sequence(imageset):
+        return isinstance(imageset, ImageSequence)
+
 
 class ImageSetLazy(ImageSet):
     """
@@ -206,8 +217,8 @@ class ImageSetLazy(ImageSet):
     def get_goniometer(self, index=None):
         return self._get_item_from_parent_or_format("goniometer", index)
 
-    def get_scan(self, index=None):
-        return self._get_item_from_parent_or_format("scan", index)
+    def get_sequence(self, index=None):
+        return self._get_item_from_parent_or_format("sequence", index)
 
     def _load_models(self, index):
         if index is None:
@@ -216,7 +227,7 @@ class ImageSetLazy(ImageSet):
         self.get_detector(index)
         self.get_beam(index)
         self.get_goniometer(index)
-        self.get_scan(index)
+        self.get_sequence(index)
 
     def __getitem__(self, item):
         if isinstance(item, slice):
@@ -250,7 +261,7 @@ class _:
 
         """
         if isinstance(item, slice):
-            offset = self.get_scan().get_batch_offset()
+            offset = self.get_sequence().get_batch_offset()
             if item.step is not None:
                 raise IndexError("Sequences must be sequential")
 
@@ -279,6 +290,9 @@ class _:
     def get_template(self):
         """Return the template"""
         return self.data().get_template()
+
+    def get_pixel_spectra(self, panel_idx, x, y):
+        return self.reader().get_pixel_spectra(panel_idx, x, y)
 
 
 def _analyse_files(filenames):
@@ -334,11 +348,11 @@ def _analyse_files(filenames):
 
 # FIXME Lots of duplication in this class, need to tidy up
 class ImageSetFactory:
-    """Factory to create imagesets and sequences."""
+    """Factory to create imagesets and imagesequences."""
 
     @staticmethod
-    def new(filenames, check_headers=False, ignore_unknown=False):
-        """Create an imageset or sequence
+    def new(filenames):
+        """Create an imageset from a filename
 
         Params:
             filenames A list of filenames
@@ -358,24 +372,29 @@ class ImageSetFactory:
             raise RuntimeError("unknown argument passed to ImageSetFactory")
 
         # Analyse the filenames and group the images into imagesets.
-        filelist_per_imageset = _analyse_files(filenames)
+        filelist_per_imageset = group_files_by_imageset(filenames)
 
         # For each file list denoting an image set, create the imageset
         # and return as a list of imagesets. N.B sequences and image sets are
         # returned in the same list.
-        imagesetlist = []
+        imagesets = []
         for filelist in filelist_per_imageset:
-            try:
-                if filelist[2] is True:
-                    iset = ImageSetFactory._create_sequence(filelist, check_headers)
-                else:
-                    iset = ImageSetFactory._create_imageset(filelist, check_headers)
-                imagesetlist.append(iset)
-            except Exception:
-                if not ignore_unknown:
-                    raise
 
-        return imagesetlist
+            template, indices = filelist
+
+            # Get the template format
+            if "#" in template:
+                filenames = sorted(_expand_template(template, indices))
+            else:
+                filenames = [template]
+
+            # Get the format object
+            format_class = dxtbx.format.Registry.get_format_class_for_file(filenames[0])
+
+            # Create and add the imageset
+            imagesets.append(format_class.get_imageset(filenames))
+
+        return imagesets
 
     @staticmethod
     def from_template(
@@ -386,7 +405,8 @@ class ImageSetFactory:
         beam=None,
         detector=None,
         goniometer=None,
-        scan=None,
+        sequence=None,
+        sequence_type=ImageSetType.ImageSequence,
     ):
         """Create a new sequence from a template.
 
@@ -428,50 +448,16 @@ class ImageSetFactory:
         # Create the sequence object
         sequence = format_class.get_imageset(
             filenames,
-            template=template,
-            as_sequence=True,
             beam=beam,
             detector=detector,
             goniometer=goniometer,
-            scan=scan,
+            sequence=sequence,
+            imageset_type=sequence_type,
             check_format=check_format,
+            template=template,
         )
 
         return [sequence]
-
-    @staticmethod
-    def _create_imageset(filelist, check_headers):
-        """Create an image set"""
-        # Extract info from filelist
-        template, indices, is_sequence = filelist
-
-        # Get the template format
-        if "#" in template:
-            filenames = sorted(_expand_template(template, indices))
-        else:
-            filenames = [template]
-
-        # Get the format object
-        format_class = dxtbx.format.Registry.get_format_class_for_file(filenames[0])
-
-        # Create and return the imageset
-        return format_class.get_imageset(filenames, as_imageset=True)
-
-    @staticmethod
-    def _create_sequence(filelist, check_headers):
-        """Create a sequence"""
-        template, indices, is_sequence = filelist
-
-        # Expand the template if necessary
-        if "#" in template:
-            filenames = sorted(_expand_template(template, indices))
-        else:
-            filenames = [template]
-
-        # Get the format object
-        format_class = dxtbx.format.Registry.get_format_class_for_file(filenames[0])
-
-        return format_class.get_imageset(filenames, template=template, as_sequence=True)
 
     @staticmethod
     def make_imageset(
@@ -480,6 +466,7 @@ class ImageSetFactory:
         check_format=True,
         single_file_indices=None,
         format_kwargs=None,
+        imageset_type=None,
     ):
         """Create an image set"""
         # Import here as Format and Imageset have cyclic dependencies
@@ -503,9 +490,8 @@ class ImageSetFactory:
         return format_class.get_imageset(
             filenames,
             single_file_indices=single_file_indices,
-            as_imageset=True,
+            imageset_type=imageset_type,
             format_kwargs=format_kwargs,
-            check_format=check_format,
         )
 
     @staticmethod
@@ -516,9 +502,10 @@ class ImageSetFactory:
         beam=None,
         detector=None,
         goniometer=None,
-        scan=None,
+        sequence=None,
         check_format=True,
         format_kwargs=None,
+        imageset_type=ImageSetType.ImageSequence,
     ):
         """Create a sequence"""
         indices = sorted(indices)
@@ -531,9 +518,9 @@ class ImageSetFactory:
 
         # Set the image range
         array_range = (min(indices) - 1, max(indices))
-        if scan is not None:
-            assert array_range == scan.get_array_range()
-            scan.set_batch_offset(array_range[0])
+        if sequence is not None:
+            assert array_range == sequence.get_array_range()
+            sequence.set_batch_offset(array_range[0])
 
         # Get the format object and reader
         if format_class is None:
@@ -552,20 +539,20 @@ class ImageSetFactory:
             beam=beam,
             detector=detector,
             goniometer=goniometer,
-            scan=scan,
+            sequence=sequence,
             format_kwargs=format_kwargs,
-            template=template,
-            as_sequence=True,
-            check_format=check_format,
+            imageset_type=imageset_type,
             single_file_indices=list(range(*array_range)),
         )
 
     @staticmethod
     def imageset_from_anyset(imageset):
         """Create a new ImageSet object from an imageset object. Converts ImageSequence to ImageSet."""
+        known_types = [ImageSet, ImageSetLazy, ImageSequence]
+        assert type(imageset) in known_types, "Unrecognized imageset type: %s" % str(
+            type(imageset)
+        )
         if isinstance(imageset, ImageSetLazy):
             return ImageSetLazy(imageset.data(), imageset.indices())
-        elif isinstance(imageset, ImageSequence) or isinstance(imageset, ImageSet):
-            return ImageSet(imageset.data(), imageset.indices())
         else:
-            raise ValueError("Unrecognized imageset type: %s" % str(type(imageset)))
+            return ImageSet(imageset.data(), imageset.indices())

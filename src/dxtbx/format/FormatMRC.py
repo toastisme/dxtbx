@@ -16,7 +16,7 @@ from scitbx.array_family import flex
 
 from dxtbx.format.Format import Format
 from dxtbx.format.FormatMultiImage import FormatMultiImage
-from dxtbx.model import ScanFactory
+from dxtbx.model import SequenceFactory
 
 logger = logging.getLogger("dials")
 
@@ -255,7 +255,9 @@ class FormatMRCimages(FormatMRC):
             index = int(re.match(".*?([0-9]+)$", s).group(1))
         except AttributeError:
             index = 1
-        return ScanFactory.make_scan((index, index), exposure, oscillation, {index: 0})
+        return SequenceFactory.make_scan(
+            (index, index), exposure, oscillation, {index: 0}
+        )
 
     def get_raw_data(self):
 
@@ -291,11 +293,11 @@ class FormatMRCstack(FormatMultiImage, FormatMRC):
     def get_beam(self, index=None):
         return Format.get_beam(self)
 
-    def get_scan(self, index=None):
+    def get_sequence(self, index=None):
         if index is None:
-            return Format.get_scan(self)
+            return Format.get_sequence(self)
         else:
-            scan = Format.get_scan(self)
+            scan = Format.get_sequence(self)
             return scan[index]
 
     def get_image_file(self, index=None):
@@ -322,6 +324,6 @@ class FormatMRCstack(FormatMultiImage, FormatMRC):
         image_range = (1, nframes)
         epochs = [0] * nframes
 
-        return self._scan_factory.make_scan(
+        return self._sequence_factory.make_scan(
             image_range, exposure, oscillation, epochs, deg=True
         )

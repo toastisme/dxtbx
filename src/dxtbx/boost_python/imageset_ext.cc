@@ -7,6 +7,8 @@
 #include <scitbx/array_family/flex_types.h>
 #include <vector>
 #include <dxtbx/imageset.h>
+#include <dxtbx/model/beam.h>
+#include <dxtbx/model/sequence.h>
 #include <dxtbx/model/pixel_to_millimeter.h>
 #include <dxtbx/error.h>
 
@@ -40,12 +42,13 @@ namespace dxtbx { namespace boost_python {
     }
   }  // namespace detail
 
-  ImageSetData::masker_ptr make_masker_pointer(boost::python::object masker) {
+  typename ImageSetData::masker_ptr make_masker_pointer(boost::python::object masker) {
     if (masker == boost::python::object()) {
-      return ImageSetData::masker_ptr();
+      return typename ImageSetData::masker_ptr();
     }
     return boost::python::extract<ImageSetData::masker_ptr>(masker)();
   }
+  
 
   /**
    * A constructor for the imageset data class
@@ -84,29 +87,30 @@ namespace dxtbx { namespace boost_python {
   }
 
   /**
-   * Set the parameters
+   * Get the parameters
    */
   boost::python::object ImageSetData_get_params(ImageSetData &self) {
     return detail::pickle_loads(self.get_params());
   }
 
   /**
-   * Get the parameters
+   * Set the parameters
    */
   void ImageSetData_set_params(ImageSetData &self, boost::python::dict params) {
     self.set_params(detail::pickle_dumps(params));
   }
 
   /**
-   * Set the format class
+   * Get the format class
    */
   boost::python::object ImageSetData_get_format(ImageSetData &self) {
     return detail::pickle_loads(self.get_format());
   }
 
   /**
-   * Get the format class
+   * Set the format class
    */
+
   void ImageSetData_set_format(ImageSetData &self, boost::python::dict format) {
     self.set_format(detail::pickle_dumps(format));
   }
@@ -114,13 +118,13 @@ namespace dxtbx { namespace boost_python {
   /**
    * A constructor for the imageset class
    */
-  boost::shared_ptr<ImageSet> make_imageset(const ImageSetData &data,
+  typename boost::shared_ptr<ImageSet> make_imageset(const ImageSetData &data,
                                             boost::python::object indices) {
     if (indices == boost::python::object()) {
       return boost::shared_ptr<ImageSet>(new ImageSet(data));
     }
 
-    return boost::shared_ptr<ImageSet>(new ImageSet(
+    return typename boost::shared_ptr<ImageSet>(new ImageSet(
       data, boost::python::extract<scitbx::af::const_ref<std::size_t> >(indices)()));
   }
 
@@ -132,7 +136,7 @@ namespace dxtbx { namespace boost_python {
       return boost::python::make_tuple(obj.reader(), obj.masker());
     }
 
-    static boost::shared_ptr<BeamBase> get_beam(const ImageSetData &self,
+    static boost::python::object get_beam(const ImageSetData &self,
                                                 std::size_t i) {
       return self.get_beam(i);
     }
@@ -147,8 +151,19 @@ namespace dxtbx { namespace boost_python {
       return self.get_goniometer(i);
     }
 
-    static boost::shared_ptr<Scan> get_scan(const ImageSetData &self, std::size_t i) {
-      return self.get_scan(i);
+    static boost::python::object get_sequence(const ImageSetData &self, std::size_t i) {
+      return self.get_sequence(i);
+    }
+
+    template<typename Func>
+    static boost::python::tuple get_python_model_list(ImageSetData obj, Func get){
+      boost::python::list models;
+      boost::python::list indices;
+      for (std::size_t i = 0; i < obj.size(); ++i) {
+        models.append(get(obj, i));
+        indices.append(i);                
+      }      
+      return boost::python::make_tuple(models, indices);
     }
 
     template <typename Model, typename Func>
@@ -185,14 +200,14 @@ namespace dxtbx { namespace boost_python {
 
     static boost::python::tuple get_model_tuple(ImageSetData obj) {
       return boost::python::make_tuple(
-        ImageSetDataPickleSuite::get_model_list<BeamBase>(
+        ImageSetDataPickleSuite::get_python_model_list(
           obj, &ImageSetDataPickleSuite::get_beam),
         ImageSetDataPickleSuite::get_model_list<Detector>(
           obj, &ImageSetDataPickleSuite::get_detector),
         ImageSetDataPickleSuite::get_model_list<Goniometer>(
           obj, &ImageSetDataPickleSuite::get_goniometer),
-        ImageSetDataPickleSuite::get_model_list<Scan>(
-          obj, &ImageSetDataPickleSuite::get_scan));
+        ImageSetDataPickleSuite::get_python_model_list(
+          obj, &ImageSetDataPickleSuite::get_sequence));
     }
 
     static boost::python::tuple get_lookup_tuple(ImageSetData obj) {
@@ -244,10 +259,36 @@ namespace dxtbx { namespace boost_python {
         ((&obj)->*set)(model_list[index_list[i]], i);
       }
     }
+    template<typename Func>
+    static void set_python_model_list(ImageSetData &obj, boost::python::tuple data, Func set){
+      // Extract to python lists
+      boost::python::list models =
+      boost::python::extract<boost::python::list>(data[0])();
+      boost::python::list indices =
+      boost::python::extract<boost::python::list>(data[1])();
+
+      // Convert to c++ vectors
+      std::vector<boost::python::object > model_list;
+      std::vector<std::size_t> index_list;
+      for (std::size_t i = 0; i < boost::python::len(models); ++i) {
+        model_list.push_back(models[i]);
+      }
+      for (std::size_t i = 0; i < boost::python::len(indices); ++i) {
+        index_list.push_back(boost::python::extract<std::size_t>(indices[i])());
+      }
+
+      // Set the models
+      DXTBX_ASSERT(index_list.size() == obj.size());
+      for (std::size_t i = 0; i < index_list.size(); ++i) {
+        DXTBX_ASSERT(index_list[i] < model_list.size());
+        ((&obj)->*set)(model_list[index_list[i]], i);
+      }
+
+    }
 
     static void set_model_tuple(ImageSetData &obj, boost::python::tuple models) {
       DXTBX_ASSERT(boost::python::len(models) == 4);
-      ImageSetDataPickleSuite::set_model_list<BeamBase>(
+      ImageSetDataPickleSuite::set_python_model_list(
         obj,
         boost::python::extract<boost::python::tuple>(models[0])(),
         &ImageSetData::set_beam);
@@ -259,10 +300,10 @@ namespace dxtbx { namespace boost_python {
         obj,
         boost::python::extract<boost::python::tuple>(models[2]),
         &ImageSetData::set_goniometer);
-      ImageSetDataPickleSuite::set_model_list<Scan>(
+      ImageSetDataPickleSuite::set_python_model_list(
         obj,
         boost::python::extract<boost::python::tuple>(models[3]),
-        &ImageSetData::set_scan);
+        &ImageSetData::set_sequence);
     }
 
     template <typename Data, typename Func>
@@ -351,7 +392,7 @@ namespace dxtbx { namespace boost_python {
                                        obj.get_beam(),
                                        obj.get_detector(),
                                        obj.get_goniometer(),
-                                       obj.get_scan());
+                                       obj.get_sequence());
     }
   };
 
@@ -489,7 +530,7 @@ namespace dxtbx { namespace boost_python {
       return;
     }
     for (std::size_t i = 0; i < self.size(); ++i) {
-      ImageSet::detector_ptr detector = self.get_detector_for_image(i);
+      typename ImageSet::detector_ptr detector = self.get_detector_for_image(i);
       DXTBX_ASSERT(dx.n_tiles() == detector->size());
       DXTBX_ASSERT(dy.n_tiles() == detector->size());
       for (std::size_t i = 0; i < detector->size(); ++i) {
@@ -520,7 +561,7 @@ namespace dxtbx { namespace boost_python {
    * millimeter strategy to use them
    */
   void ImageSequence_update_detector_px_mm_data(ImageSequence &self) {
-    ImageSequence::detector_ptr detector = self.get_detector();
+    typename ImageSequence::detector_ptr detector = self.get_detector();
     Image<double> dx = self.external_lookup().dx().get_data();
     Image<double> dy = self.external_lookup().dy().get_data();
     DXTBX_ASSERT(dx.empty() == dy.empty());
@@ -587,7 +628,7 @@ namespace dxtbx { namespace boost_python {
                              arg("format") = boost::python::object())))
       .def("reader", &ImageSetData::reader)
       .def("masker", &ImageSetData::masker)
-      .def("get_data", &ImageSetData::get_data)
+      .def("get_data", static_cast<ImageBuffer (ImageSetData::*)(std::size_t)>(&ImageSetData::get_data))
       .def("has_single_file_reader", &ImageSetData::has_single_file_reader)
       .def("get_path", &ImageSetData::get_path)
       .def("get_master_path", &ImageSetData::get_master_path)
@@ -597,11 +638,11 @@ namespace dxtbx { namespace boost_python {
       .def("get_beam", &ImageSetData::get_beam)
       .def("get_detector", &ImageSetData::get_detector)
       .def("get_goniometer", &ImageSetData::get_goniometer)
-      .def("get_scan", &ImageSetData::get_scan)
+      .def("get_sequence", &ImageSetData::get_sequence)
       .def("set_beam", &ImageSetData::set_beam)
       .def("set_detector", &ImageSetData::set_detector)
       .def("set_goniometer", &ImageSetData::set_goniometer)
-      .def("set_scan", &ImageSetData::set_scan)
+      .def("set_sequence", &ImageSetData::set_sequence)
       .def("get_template", &ImageSetData::get_template)
       .def("set_template", &ImageSetData::set_template)
       .def("get_vendor", &ImageSetData::get_vendor)
@@ -615,7 +656,7 @@ namespace dxtbx { namespace boost_python {
         make_function(&ImageSetData::external_lookup, return_internal_reference<>()))
       .def_pickle(ImageSetDataPickleSuite());
 
-    class_<ImageSet>("ImageSet", no_init)
+    class_<ImageSet >("ImageSet", no_init)
       .def("__init__",
            make_constructor(&make_imageset,
                             default_call_policies(),
@@ -633,11 +674,11 @@ namespace dxtbx { namespace boost_python {
       .def("get_beam", &ImageSet::get_beam_for_image, (arg("index") = 0))
       .def("get_detector", &ImageSet::get_detector_for_image, (arg("index") = 0))
       .def("get_goniometer", &ImageSet::get_goniometer_for_image, (arg("index") = 0))
-      .def("get_scan", &ImageSet::get_scan_for_image, (arg("index") = 0))
+      .def("get_sequence", &ImageSet::get_sequence_for_image, (arg("index") = 0))
       .def("set_beam", &ImageSet::set_beam_for_image, (arg("index") = 0))
       .def("set_detector", &ImageSet::set_detector_for_image, (arg("index") = 0))
       .def("set_goniometer", &ImageSet::set_goniometer_for_image, (arg("index") = 0))
-      .def("set_scan", &ImageSet::set_scan_for_image, (arg("index") = 0))
+      .def("set_sequence", &ImageSet::set_sequence_for_image, (arg("index") = 0))
       .def("get_path", &ImageSet::get_path)
       .def("get_image_identifier", &ImageSet::get_image_identifier)
       .def("mark_for_rejection", &ImageSet::mark_for_rejection)
@@ -665,38 +706,38 @@ namespace dxtbx { namespace boost_python {
 
     class_<ImageSequence, bases<ImageSet> >("ImageSequence", no_init)
       .def(init<const ImageSetData &,
-                const ImageSequence::beam_ptr &,
+                const boost::python::object &,
                 const ImageSequence::detector_ptr &,
                 const ImageSequence::goniometer_ptr &,
-                const ImageSequence::scan_ptr &>(
-        (arg("data"), arg("beam"), arg("detector"), arg("goniometer"), arg("scan"))))
+                const boost::python::object &>(
+        (arg("data"), arg("beam"), arg("detector"), arg("goniometer"), arg("sequence"))))
       .def(init<const ImageSetData &,
                 const scitbx::af::const_ref<std::size_t> &,
-                const ImageSequence::beam_ptr &,
+                const boost::python::object &,
                 const ImageSequence::detector_ptr &,
                 const ImageSequence::goniometer_ptr &,
-                const ImageSequence::scan_ptr &>((arg("data"),
+                const boost::python::object &>((arg("data"),
                                                   arg("indices"),
                                                   arg("beam"),
                                                   arg("detector"),
                                                   arg("goniometer"),
-                                                  arg("scan"))))
+                                                  arg("sequence"))))
       .def("get_beam", &ImageSequence::get_beam_for_image)
       .def("get_detector", &ImageSequence::get_detector_for_image)
       .def("get_goniometer", &ImageSequence::get_goniometer_for_image)
-      .def("get_scan", &ImageSequence::get_scan_for_image)
+      .def("get_sequence", &ImageSequence::get_sequence_for_image)
       .def("set_beam", &ImageSequence::set_beam_for_image)
       .def("set_detector", &ImageSequence::set_detector_for_image)
       .def("set_goniometer", &ImageSequence::set_goniometer_for_image)
-      .def("set_scan", &ImageSequence::set_scan_for_image)
+      .def("set_sequence", &ImageSequence::set_sequence_for_image)
       .def("get_beam", &ImageSequence::get_beam)
       .def("get_detector", &ImageSequence::get_detector)
       .def("get_goniometer", &ImageSequence::get_goniometer)
-      .def("get_scan", &ImageSequence::get_scan)
+      .def("get_sequence", &ImageSequence::get_sequence)
       .def("set_beam", &ImageSequence::set_beam)
       .def("set_detector", &ImageSequence::set_detector)
       .def("set_goniometer", &ImageSequence::set_goniometer)
-      .def("set_scan", &ImageSequence::set_scan)
+      .def("set_sequence", &ImageSequence::set_sequence)
       .def("get_array_range", &ImageSequence::get_array_range)
       .def("complete_set", &ImageSequence::complete_sequence)
       .def("partial_set", &ImageSequence::partial_sequence)
@@ -705,7 +746,7 @@ namespace dxtbx { namespace boost_python {
   }
 
   BOOST_PYTHON_MODULE(dxtbx_imageset_ext) {
-    export_imageset();
+      export_imageset();
   }
 
 }}  // namespace dxtbx::boost_python
