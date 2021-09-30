@@ -997,7 +997,7 @@ public:
    * @param sequence The sequence model
    */
   virtual void set_sequence_for_image(const boost::python::object &sequence, std::size_t index = 0) {
-    DXTBX_ASSERT(sequence == NULL || sequence.attr("get_num_images")() == 1);
+    DXTBX_ASSERT(sequence != boost::python::api::object() || sequence.attr("get_num_images")() == 1);
     DXTBX_ASSERT(index < indices_.size());
     data_.set_sequence(sequence, indices_[index]);
   }
@@ -1250,7 +1250,7 @@ public:
       ImageSet::set_beam_for_image(beam_, i);
       ImageSet::set_detector_for_image(detector_, i);
       ImageSet::set_goniometer_for_image(goniometer_, i);
-      ImageSet::set_sequence_for_image(sequence_, i);
+      ImageSet::set_sequence_for_image(sequence_[i], i);
     }
   }
 
@@ -1292,7 +1292,7 @@ public:
       ImageSet::set_beam_for_image(beam_, i);
       ImageSet::set_detector_for_image(detector_, i);
       ImageSet::set_goniometer_for_image(goniometer_, i);
-      ImageSet::set_sequence_for_image(sequence_, i);
+      ImageSet::set_sequence_for_image(sequence_[i], i);
     }
   }
 
@@ -1397,7 +1397,7 @@ public:
     DXTBX_ASSERT(sequence_images == ImageSet::size());
     sequence_ = sequence;
     for (std::size_t i = 0; i < ImageSet::size(); ++i) {
-      ImageSet::set_sequence_for_image(sequence_, i);
+      ImageSet::set_sequence_for_image(sequence_[i], i);
     }
   }
 
