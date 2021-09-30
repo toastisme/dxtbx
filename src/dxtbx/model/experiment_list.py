@@ -35,6 +35,7 @@ from dxtbx.model import (
     ExperimentList,
     GoniometerFactory,
     ProfileModelFactory,
+    Scan,
     SequenceFactory,
 )
 from dxtbx.sequence_filenames import (
@@ -689,6 +690,7 @@ class ExperimentListFactory:
             # all referencing into the same image set
             if (
                 isinstance(imageset, ImageSequence)
+                and isinstance(imageset.get_sequence(), Scan)
                 and imageset.get_sequence().is_still()
             ):
                 start, end = imageset.get_sequence().get_array_range()
