@@ -332,19 +332,15 @@ class Format:
             return False
 
         if is_tof_imagesequence(sequence, beam, format_instance):
-            return ImageSetType.TOFImageSequence
+            return ImageSetType.ImageSequence
         elif is_rot_imagesequence(sequence, goniometer, format_instance):
-            return ImageSetType.RotImageSequence
+            return ImageSetType.ImageSequence
         return ImageSetType.ImageSet
 
     @staticmethod
     def format_instance_required(beam, detector, imageset_type):
 
-        from dxtbx.imageset import ImageSetType
-
         if beam is None or detector is None:
-            return True
-        if imageset_type == ImageSetType.TOFImageSequence:
             return True
         return False
 
@@ -365,14 +361,7 @@ class Format:
 
         """
         # Import here to avoid cyclic imports
-        from dxtbx.imageset import (
-            ImageSet,
-            ImageSetData,
-            ImageSetType,
-            RotImageSequence,
-            TOFImageSequence,
-            TOFImageSetData,
-        )
+        from dxtbx.imageset import ImageSequence, ImageSet, ImageSetData, ImageSetType
 
         def process_filenames(filenames):
             return [
@@ -441,7 +430,7 @@ class Format:
                 format_instance=format_instance,
             )
 
-            if imageset_type == ImageSetType.RotImageSequence:
+            if imageset_type == ImageSetType.ImageSequence:
                 iset_data = ImageSetData(
                     reader=reader,
                     masker=masker,
@@ -450,23 +439,7 @@ class Format:
                     format=cls,
                     template=template,
                 )
-                iset = RotImageSequence(
-                    iset_data,
-                    beam=beam,
-                    detector=detector,
-                    goniometer=goniometer,
-                    sequence=sequence,
-                )
-            elif imageset_type == ImageSetType.TOFImageSequence:
-                iset_data = TOFImageSetData(
-                    reader=reader,
-                    masker=masker,
-                    vendor=vendor,
-                    params=format_kwargs,
-                    format=cls,
-                    template=template,
-                )
-                iset = TOFImageSequence(
+                iset = ImageSequence(
                     iset_data,
                     beam=beam,
                     detector=detector,
@@ -560,10 +533,7 @@ class Format:
                 vendor,
                 format_kwargs,
             )
-        elif imageset_type in [
-            ImageSetType.RotImageSequence,
-            ImageSetType.TOFImageSequence,
-        ]:
+        elif imageset_type == ImageSetType.ImageSequence:
             iset = create_imagesequence(
                 cls,
                 filenames,
