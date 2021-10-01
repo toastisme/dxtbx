@@ -20,7 +20,7 @@ from libtbx.utils import Sorry
 
 import dxtbx.filecache_controller
 from dxtbx.format.image import ImageBool
-from dxtbx.model import MultiAxisGoniometer
+from dxtbx.model import MultiAxisGoniometer, TOFBeam
 from dxtbx.model.beam import MonochromaticBeamFactory
 from dxtbx.model.detector import DetectorFactory
 from dxtbx.model.goniometer import GoniometerFactory
@@ -341,6 +341,8 @@ class Format:
     def format_instance_required(beam, detector, imageset_type):
 
         if beam is None or detector is None:
+            return True
+        if isinstance(beam, TOFBeam):
             return True
         return False
 
