@@ -976,7 +976,7 @@ public:
    * @param sequence The sequence model
    */
   virtual void set_sequence_for_image(const boost::python::object &sequence, std::size_t index = 0) {
-    DXTBX_ASSERT(sequence != boost::python::api::object() || sequence.attr("get_num_images")() == 1);
+    DXTBX_ASSERT(sequence == boost::python::api::object() || sequence.attr("get_num_images")() == 1);
     DXTBX_ASSERT(index < indices_.size());
     data_.set_sequence(sequence, indices_[index]);
   }

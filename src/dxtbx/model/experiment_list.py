@@ -486,6 +486,11 @@ class ExperimentListDict:
             i0, i1 = sequence.get_image_range()
 
         format_class = None
+        if Format.format_instance_required(
+            beam=beam, detector=detector, imageset_type=imageset_type
+        ):
+            self._check_format = True
+
         if self._check_format is False:
             if "single_file_indices" in imageset:
                 format_class = FormatMultiImage
