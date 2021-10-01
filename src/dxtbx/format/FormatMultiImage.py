@@ -146,7 +146,6 @@ class FormatMultiImage(Format):
             single_file_indices,
             format_instance,
             format_kwargs,
-            imageset_type,
         ):
 
             # Check indices are sequential
@@ -183,25 +182,24 @@ class FormatMultiImage(Format):
             else:
                 masker = None
 
-            if imageset_type == ImageSetType.ImageSequence:
-                isetdata = ImageSetData(
-                    reader=reader,
-                    masker=masker,
-                    vendor=vendor,
-                    params=format_kwargs,
-                    format=cls,
-                    template=filenames[0],
-                )
+            isetdata = ImageSetData(
+                reader=reader,
+                masker=masker,
+                vendor=vendor,
+                params=format_kwargs,
+                format=cls,
+                template=filenames[0],
+            )
 
-                # Create the sequence
-                iset = ImageSequence(
-                    isetdata,
-                    beam=beam,
-                    detector=detector,
-                    goniometer=goniometer,
-                    sequence=sequence,
-                    indices=single_file_indices,
-                )
+            # Create the sequence
+            iset = ImageSequence(
+                isetdata,
+                beam=beam,
+                detector=detector,
+                goniometer=goniometer,
+                sequence=sequence,
+                indices=single_file_indices,
+            )
             _add_static_mask_to_iset(format_instance, iset)
 
             return iset
@@ -384,7 +382,6 @@ class FormatMultiImage(Format):
                 single_file_indices,
                 format_instance,
                 format_kwargs,
-                imageset_type=imageset_type,
             )
         else:
             raise NotImplementedError(f"Imageset_type {imageset_type} not implemented")
