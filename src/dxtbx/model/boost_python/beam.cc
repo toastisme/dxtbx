@@ -70,7 +70,8 @@ namespace dxtbx { namespace model { namespace boost_python {
   struct TOFBeamPickleSuite : boost::python::pickle_suite {
     static boost::python::tuple getinitargs(const TOFBeam &obj) {
       return boost::python::make_tuple(obj.get_sample_to_source_direction(),
-                                       obj.get_sample_to_moderator_distance());
+                                       obj.get_sample_to_moderator_distance(),
+                                       obj.get_wavelength_range());
     }
     static boost::python::tuple getstate(boost::python::object obj) {
       const TOFBeam &beam = boost::python::extract<const TOFBeam &>(obj)();
@@ -79,8 +80,6 @@ namespace dxtbx { namespace model { namespace boost_python {
 
     static void setstate(boost::python::object obj, boost::python::tuple state) {
       TOFBeam &beam = boost::python::extract<TOFBeam &>(obj)();
-      //DXTBX_ASSERT(boost::python::len(state) == 2);
-
       // restore the object's __dict__
       boost::python::dict d =
         boost::python::extract<boost::python::dict>(obj.attr("__dict__"))();
@@ -246,8 +245,9 @@ namespace dxtbx { namespace model { namespace boost_python {
   }
 
   static TOFBeam *make_tof_beam(vec3<double> sample_to_source,
-                         double moderator_sample_distance) {
-    return new TOFBeam(sample_to_source, moderator_sample_distance);
+                         double moderator_sample_distance,
+                         vec2<double> wavelength_range) {
+    return new TOFBeam(sample_to_source, moderator_sample_distance, wavelength_range);
   }
 
   template<>
@@ -256,13 +256,15 @@ namespace dxtbx { namespace model { namespace boost_python {
     result["__id__"] = "TOFBeam";
     result["direction"] = obj.get_sample_to_source_direction();
     result["sample_to_moderator_distance"] = obj.get_sample_to_moderator_distance();
+    result["wavelength_range"] = obj.get_wavelength_range();
     return result;
   }
 
   template<>
   TOFBeam *from_dict<TOFBeam>(boost::python::dict obj){
     return new TOFBeam(boost::python::extract<vec3<double> >(obj["direction"]),
-      boost::python::extract<double>(obj["sample_to_moderator_distance"]));
+      boost::python::extract<double>(obj["sample_to_moderator_distance"]),
+      boost::python::extract<vec2<double> >(obj["wavelength_range"]));
   }
 
   void export_beam() {
@@ -278,16 +280,21 @@ namespace dxtbx { namespace model { namespace boost_python {
     // TOFBeam : Beam
     class_<TOFBeam, boost::shared_ptr<TOFBeam>, bases<Beam> >("TOFBeam")
       .def(init<const TOFBeam &>())
-      .def(init<vec3<double>, double>((arg("direction"), arg("sample_to_moderator_distance"))))
+      .def(init<vec3<double>, double, vec2<double> >((arg("direction"), 
+                                       arg("sample_to_moderator_distance"), 
+                                       arg("wavelength_range"))))
       .def("__init__",
            make_constructor(&make_tof_beam,
                             default_call_policies(),
                             (arg("direction"),
-                             arg("sample_to_moderator_distance"))))
+                             arg("sample_to_moderator_distance"),
+                             arg("wavelength_range"))))
       .def("get_sample_to_moderator_distance", &TOFBeam::get_sample_to_moderator_distance)
       .def("set_sample_to_moderator_distance", &TOFBeam::set_sample_to_moderator_distance)
       .def("get_unit_s0", &TOFBeam::get_unit_s0)
       .def("set_unit_s0", &TOFBeam::set_unit_s0)
+      .def("get_wavelength_range", &TOFBeam::get_wavelength_range)
+      .def("set_wavelength_range", &TOFBeam::set_wavelength_range)
       .def("to_dict", &to_dict<TOFBeam>)
       .def("from_dict", &from_dict<TOFBeam>, return_value_policy<manage_new_object>())
       .def_pickle(TOFBeamPickleSuite());
