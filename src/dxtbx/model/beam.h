@@ -14,6 +14,7 @@
 #include <iostream>
 #include <cmath>
 #include <scitbx/vec3.h>
+#include <scitbx/vec2.h>
 #include <scitbx/array_family/shared.h>
 #include <scitbx/array_family/simple_io.h>
 #include <scitbx/array_family/simple_tiny_io.h>
@@ -23,6 +24,7 @@
 namespace dxtbx { namespace model {
 
   using scitbx::vec3;
+  using scitbx::vec2;
 
   /** Base class for beam objects */
   class Beam {
@@ -43,15 +45,18 @@ namespace dxtbx { namespace model {
 
     TOFBeam()
       : direction_(0.0, 0.0, 0.0),
-        sample_to_moderator_distance_(0) {}
+        sample_to_moderator_distance_(0),
+        wavelength_range_(0.0, 0.0) {}
 
     /**
      * @param direction unit vector from sample to source
      * @param sample_to_moderator_distance (mm)
+     * @param wavelength_range min and max incident wavelengths
      */
-    TOFBeam(vec3<double> direction, double sample_to_moderator_distance)
+    TOFBeam(vec3<double> direction, double sample_to_moderator_distance, vec2<double> wavelength_range)
         : direction_(direction),
-          sample_to_moderator_distance_(sample_to_moderator_distance) {}
+          sample_to_moderator_distance_(sample_to_moderator_distance),
+          wavelength_range_(wavelength_range) {}
 
     virtual ~TOFBeam() {}
 
@@ -65,6 +70,11 @@ namespace dxtbx { namespace model {
       return sample_to_moderator_distance_;
     }
 
+    vec2<double> get_wavelength_range() const{
+      DXTBX_ASSERT(wavelength_range_.length() > 0);
+      return wavelength_range_;
+    }
+
     void set_sample_to_source_direction(vec3<double> direction) override{
       DXTBX_ASSERT(direction.length() > 0);
       direction_ = direction.normalize();
@@ -73,6 +83,11 @@ namespace dxtbx { namespace model {
     void set_sample_to_moderator_distance(float sample_to_moderator_distance){
       DXTBX_ASSERT(sample_to_moderator_distance > 0);
       sample_to_moderator_distance_ = sample_to_moderator_distance;
+    }
+
+    void set_wavelength_range(vec2<double> wavelength_range){
+      DXTBX_ASSERT(wavelength_range.length() > 0);
+      wavelength_range_ = wavelength_range;
     }
 
     void rotate_around_origin(vec3<double> axis, double angle) override {
@@ -93,6 +108,7 @@ namespace dxtbx { namespace model {
   private:
     vec3<double> direction_;
     double sample_to_moderator_distance_;
+    vec2<double> wavelength_range_;
 
   };
 

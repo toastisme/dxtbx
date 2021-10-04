@@ -468,6 +468,8 @@ class TOFBeamFactory(BeamFactoryBase):
                 raise RuntimeError(
                     "Cannot create ToF beam: sample_to_moderator_distance not set"
                 )
+            if params.beam.wavelength_range is None and reference is None:
+                raise RuntimeError("Cannot create ToF beam: wavelength_range not set")
 
         check_for_required_params(params=params, reference=reference)
         if reference is None:
@@ -478,7 +480,11 @@ class TOFBeamFactory(BeamFactoryBase):
         if params.beam.direction is not None:
             beam.set_sample_to_source_direction(params.beam.direction)
         if params.sample_to_moderator_distance is not None:
-            beam.set_sample_to_moderator_distance(params.sample_to_moderator_distance)
+            beam.set_sample_to_moderator_distance(
+                params.beam.sample_to_moderator_distance
+            )
+        if params.wavelength_range is not None:
+            beam.set_wavelength_range(params.beam.wavelength_range)
 
         return beam
 
@@ -489,7 +495,11 @@ class TOFBeamFactory(BeamFactoryBase):
                 if i not in dict:
                     raise RuntimeError(f"Cannot create TOFBeam: {i} not in dictionary")
 
-        required_keys = ["direction", "sample_to_moderator_distance"]
+        required_keys = [
+            "direction",
+            "sample_to_moderator_distance",
+            "wavelength_range",
+        ]
         check_for_required_keys(dict=dict, required_keys=required_keys)
         if dict is None and template is None:
             return None
@@ -515,8 +525,12 @@ class TOFBeamFactory(BeamFactoryBase):
             raise RuntimeError(
                 "Cannot create TOFBeam: sample_to_moderator_distance not set"
             )
+        wavelength_range = kwargs.get("wavelength_range")
+        if not wavelength_range:
+            raise RuntimeError("Cannot create TOFBeam: wavelength_range not set")
 
         return TOFBeam(
             tuple(map(float, sample_to_source_direction)),
             float(sample_to_moderator_distance),
+            tuple(map(float, wavelength_range)),
         )
