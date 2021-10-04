@@ -177,6 +177,9 @@ class FormatISISSXD(FormatNXTOFRAW):
     def _get_sample_to_moderator_distance(self):
         return 8300
 
+    def _get_wavelength_range(self):
+        return (0.2, 10)
+
     def _get_num_panels(self):
         return 11
 
@@ -283,9 +286,11 @@ class FormatISISSXD(FormatNXTOFRAW):
     def get_beam(self, idx=None):
         sample_to_source_dir = self._get_sample_to_source_direction()
         sample_to_mod_d = self._get_sample_to_moderator_distance()
+        wavelength_range = self._get_wavelength_range()
         return TOFBeamFactory.make_beam(
             sample_to_source_direction=sample_to_source_dir,
             sample_to_moderator_distance=sample_to_mod_d,
+            wavelength_range=wavelength_range,
         )
 
     def get_detector(self, idx=None):
