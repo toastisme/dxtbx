@@ -11,7 +11,7 @@ from dials.array_family import flex
 from dxtbx import IncorrectFormatError
 from dxtbx.format.FormatNXTOFRAW import FormatNXTOFRAW
 from dxtbx.model import Detector
-from dxtbx.model.beam import TOFBeamFactory
+from dxtbx.model.beam import PolyBeamFactory
 from dxtbx.model.sequence import SequenceFactory
 
 
@@ -287,7 +287,7 @@ class FormatISISSXD(FormatNXTOFRAW):
         sample_to_source_dir = self._get_sample_to_source_direction()
         sample_to_mod_d = self._get_sample_to_moderator_distance()
         wavelength_range = self._get_wavelength_range()
-        return TOFBeamFactory.make_beam(
+        return PolyBeamFactory.make_beam(
             sample_to_source_direction=sample_to_source_dir,
             sample_to_moderator_distance=sample_to_mod_d,
             wavelength_range=wavelength_range,

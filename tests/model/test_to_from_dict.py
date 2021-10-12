@@ -1,11 +1,11 @@
 from scitbx.array_family import flex
 
-from dxtbx.model import Detector, Goniometer, MonochromaticBeam, Scan
+from dxtbx.model import Detector, Goniometer, MonoBeam, Scan
 
 
 def test_beam():
     # Construct the object
-    b1 = MonochromaticBeam(
+    b1 = MonoBeam(
         direction=(1, 2, 3),
         wavelength=1.1,
         divergence=0.01,
@@ -18,7 +18,7 @@ def test_beam():
 
     # Create a dictionary and get the beam back
     d = b1.to_dict()
-    b2 = MonochromaticBeam.from_dict(d)
+    b2 = MonoBeam.from_dict(d)
     assert b2 == b1
 
 

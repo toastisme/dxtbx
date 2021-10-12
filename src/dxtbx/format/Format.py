@@ -18,8 +18,8 @@ from libtbx.utils import Sorry
 
 import dxtbx.filecache_controller
 from dxtbx.format.image import ImageBool
-from dxtbx.model import MultiAxisGoniometer, TOFBeam
-from dxtbx.model.beam import MonochromaticBeamFactory
+from dxtbx.model import MultiAxisGoniometer, PolyBeam
+from dxtbx.model.beam import MonoBeamFactory
 from dxtbx.model.detector import DetectorFactory
 from dxtbx.model.goniometer import GoniometerFactory
 from dxtbx.model.sequence import SequenceFactory
@@ -161,7 +161,7 @@ class Format:
 
         self._goniometer_factory = GoniometerFactory
         self._detector_factory = DetectorFactory
-        self._beam_factory = MonochromaticBeamFactory
+        self._beam_factory = MonoBeamFactory
         self._sequence_factory = SequenceFactory
 
         self.setup()
@@ -300,7 +300,7 @@ class Format:
     def identify_imageset_type(sequence, goniometer, beam, format_instance):
 
         from dxtbx.imageset import ImageSetType
-        from dxtbx.model.beam import TOFBeam
+        from dxtbx.model.beam import PolyBeam
         from dxtbx.model.sequence import Scan, TOFSequence
 
         def is_tof_imagesequence(sequence, beam, format_instance):
@@ -308,10 +308,10 @@ class Format:
                 beam = format_instance.get_beam()
             if sequence is None and format_instance is not None:
                 sequence = format_instance.get_sequence()
-            if isinstance(beam, TOFBeam):
+            if isinstance(beam, PolyBeam):
                 if not isinstance(sequence, TOFSequence):
                     raise NotImplementedError(
-                        "ToFBeam only implemented to work with TOFSequence"
+                        "PolyBeam only implemented to work with TOFSequence"
                     )
                 else:
                     return True
@@ -340,7 +340,7 @@ class Format:
 
         if beam is None or detector is None:
             return True
-        if isinstance(beam, TOFBeam):
+        if isinstance(beam, PolyBeam):
             return True
         return False
 

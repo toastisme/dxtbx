@@ -18,7 +18,7 @@ import dxtbx.model
 from dxtbx.model import (
     Crystal,
     Detector,
-    MonochromaticBeam,
+    MonoBeam,
     Panel,
     ParallaxCorrectedPxMmStrategy,
     Scan,
@@ -593,11 +593,9 @@ class BeamFactory:
         if spectrum_weights is None:
             # Construct the beam model
             wavelength_value = get_wavelength(wavelength)
-            self.model = MonochromaticBeam(
-                direction=(0, 0, 1), wavelength=wavelength_value
-            )
+            self.model = MonoBeam(direction=(0, 0, 1), wavelength=wavelength_value)
         else:
-            self.model = MonochromaticBeam()
+            self.model = MonoBeam()
             self.model.set_sample_to_source_direction((0, 0, 1))
 
             wavelength_units = spectrum_wavelengths.attrs["units"]

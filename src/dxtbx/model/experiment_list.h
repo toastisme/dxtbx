@@ -451,7 +451,7 @@ namespace dxtbx { namespace model {
 
     bool is_beam(boost::python::object obj) const{
       std::string obj_type = boost::python::extract<std::string>(obj.attr("__class__").attr("__name__"));
-      if (obj_type == "MonochromaticBeam" || obj_type == "TOFBeam"){
+      if (obj_type == "MonoBeam" || obj_type == "PolyBeam"){
         return true;
       }
       return false;
