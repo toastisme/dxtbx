@@ -3,8 +3,8 @@ import pytest
 from libtbx.phil import parse
 from scitbx import matrix
 
-from dxtbx.model import MonochromaticBeam
-from dxtbx.model.beam import MonochromaticBeamFactory, beam_phil_scope
+from dxtbx.model import MonoBeam
+from dxtbx.model.beam import MonoBeamFactory, beam_phil_scope
 
 
 def test_setting_direction_and_wavelength():
@@ -13,7 +13,7 @@ def test_setting_direction_and_wavelength():
     wavelength = 0.689400
 
     # Create the beam
-    b = MonochromaticBeam(direction, wavelength)
+    b = MonoBeam(direction, wavelength)
 
     eps = 1e-7
 
@@ -36,7 +36,7 @@ def test_setting_s0():
     s0 = -unit_direction * 1.0 / wavelength
 
     # Create the beam
-    b = MonochromaticBeam(s0)
+    b = MonoBeam(s0)
 
     eps = 1e-7
 
@@ -57,7 +57,7 @@ def test_from_phil():
     direction = matrix.col((0.013142, 0.002200, 1.450476))
     wavelength = 0.689400
 
-    reference = MonochromaticBeam(direction, wavelength)
+    reference = MonoBeam(direction, wavelength)
 
     params1 = beam_phil_scope.fetch(
         parse(
@@ -81,10 +81,10 @@ def test_from_phil():
     ).extract()
 
     # Create the beam
-    assert MonochromaticBeamFactory.from_phil(params1)
-    assert MonochromaticBeamFactory.from_phil(params2, reference)
+    assert MonoBeamFactory.from_phil(params1)
+    assert MonoBeamFactory.from_phil(params2, reference)
     with pytest.raises(RuntimeError):
-        MonochromaticBeamFactory.from_phil(params2)
+        MonoBeamFactory.from_phil(params2)
 
     params3 = beam_phil_scope.fetch(
         parse(
@@ -96,7 +96,7 @@ def test_from_phil():
   """
         )
     ).extract()
-    b3 = MonochromaticBeamFactory.from_phil(params3, reference)
+    b3 = MonoBeamFactory.from_phil(params3, reference)
     assert b3.get_polarization_fraction() == 0.5
     assert b3.get_polarization_normal() == (1.0, 0.0, 0.0)
 
@@ -108,7 +108,7 @@ def test_scan_varying():
     s0 = -unit_direction * 1.0 / wavelength
 
     # Create the beam
-    b = MonochromaticBeam(s0)
+    b = MonoBeam(s0)
 
     assert b.get_num_scan_points() == 0
     assert b.get_s0_at_scan_points().size() == 0
@@ -150,27 +150,27 @@ def test_beam_object_comparison():
     s0 = -unit_direction * 1.0 / wavelength
 
     # Equal beams with scan-points set
-    b1 = MonochromaticBeam(s0)
+    b1 = MonoBeam(s0)
     b1.set_s0_at_scan_points([s0] * 5)
-    b2 = MonochromaticBeam(s0)
+    b2 = MonoBeam(s0)
     b2.set_s0_at_scan_points([s0] * 5)
 
     assert b1 == b2
     assert b1.is_similar_to(b2)
 
     # Different direction
-    b3 = MonochromaticBeam(-s0)
+    b3 = MonoBeam(-s0)
     b3.set_s0_at_scan_points([-s0] * 5)
     assert b1 != b3
     assert not b1.is_similar_to(b3)
 
     # Different wavelength
-    b4 = MonochromaticBeam(s0 * 1.5)
+    b4 = MonoBeam(s0 * 1.5)
     b4.set_s0_at_scan_points([s0 * 1.5] * 5)
     assert b1 != b4
     assert not b1.is_similar_to(b4)
 
 
 def test_beam_self_serialization():
-    beam = MonochromaticBeam()
-    assert beam == MonochromaticBeamFactory.from_dict(beam.to_dict())
+    beam = MonoBeam()
+    assert beam == MonoBeamFactory.from_dict(beam.to_dict())

@@ -12,7 +12,7 @@ from scitbx import matrix
 from scitbx.array_family import flex
 
 from dxtbx.imageset import ImageGrid, ImageSequence, ImageSet
-from dxtbx.model.beam import BeamFactory, MonochromaticBeamFactory, TOFBeamFactory
+from dxtbx.model.beam import BeamFactory, MonoBeamFactory, PolyBeamFactory
 from dxtbx.model.crystal import CrystalFactory
 from dxtbx.model.detector import DetectorFactory
 from dxtbx.model.goniometer import GoniometerFactory
@@ -32,7 +32,7 @@ from dxtbx_model_ext import (
     KappaDirection,
     KappaGoniometer,
     KappaScanAxis,
-    MonochromaticBeam,
+    MonoBeam,
     MosaicCrystalKabsch2010,
     MosaicCrystalSauter2014,
     MultiAxisGoniometer,
@@ -40,12 +40,12 @@ from dxtbx_model_ext import (
     OffsetPxMmStrategy,
     Panel,
     ParallaxCorrectedPxMmStrategy,
+    PolyBeam,
     PxMmStrategy,
     Scan,
     Sequence,
     SimplePxMmStrategy,
     Spectrum,
-    TOFBeam,
     TOFSequence,
     VirtualPanel,
     VirtualPanelFrame,
@@ -57,12 +57,12 @@ from dxtbx_model_ext import (
 )
 
 __all__ = (
-    "MonochromaticBeam",
-    "TOFBeam",
+    "MonoBeam",
+    "PolyBeam",
     "Beam",
     "BeamFactory",
-    "MonochromaticBeamFactory",
-    "TOFBeamFactory",
+    "MonoBeamFactory",
+    "PolyBeamFactory",
     "Crystal",
     "CrystalBase",
     "CrystalFactory",

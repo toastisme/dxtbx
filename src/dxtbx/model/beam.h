@@ -41,10 +41,10 @@ namespace dxtbx { namespace model {
     virtual void set_unit_s0(vec3<double> unit_s0) = 0; 
   };
 
-  class TOFBeam : public Beam{
+  class PolyBeam : public Beam{
   public:
 
-    TOFBeam()
+    PolyBeam()
       : direction_(0.0, 0.0, 0.0),
         sample_to_moderator_distance_(0),
         wavelength_range_(0.0, 0.0) {}
@@ -54,12 +54,12 @@ namespace dxtbx { namespace model {
      * @param sample_to_moderator_distance (mm)
      * @param wavelength_range min and max incident wavelengths
      */
-    TOFBeam(vec3<double> direction, double sample_to_moderator_distance, vec2<double> wavelength_range)
+    PolyBeam(vec3<double> direction, double sample_to_moderator_distance, vec2<double> wavelength_range)
         : direction_(direction),
           sample_to_moderator_distance_(sample_to_moderator_distance),
           wavelength_range_(wavelength_range) {}
 
-    virtual ~TOFBeam() {}
+    virtual ~PolyBeam() {}
 
     vec3<double> get_sample_to_source_direction() const override {
       DXTBX_ASSERT(direction_.length() > 0);
@@ -114,10 +114,10 @@ namespace dxtbx { namespace model {
   };
 
   /** A class to represent a simple beam. */
-  class MonochromaticBeam : public Beam {
+  class MonoBeam : public Beam {
   public:
     /** Default constructor: initialise all to zero */
-    MonochromaticBeam()
+    MonoBeam()
         : wavelength_(0.0),
           direction_(0.0, 0.0, 1.0),
           divergence_(0.0),
@@ -131,7 +131,7 @@ namespace dxtbx { namespace model {
      * Initialise all the beam parameters.
      * @param direction The beam direction vector.
      */
-    MonochromaticBeam(vec3<double> s0)
+    MonoBeam(vec3<double> s0)
         : divergence_(0.0),
           sigma_divergence_(0.0),
           polarization_normal_(0.0, 1.0, 0.0),
@@ -149,7 +149,7 @@ namespace dxtbx { namespace model {
      * @param wavelength The wavelength of the beam
      * @param direction The beam direction vector.
      */
-    MonochromaticBeam(vec3<double> direction, double wavelength)
+    MonoBeam(vec3<double> direction, double wavelength)
         : wavelength_(wavelength),
           divergence_(0.0),
           sigma_divergence_(0.0),
@@ -165,7 +165,7 @@ namespace dxtbx { namespace model {
      * Initialise all the beam parameters.
      * @param direction The beam direction vector.
      */
-    MonochromaticBeam(vec3<double> s0, double divergence, double sigma_divergence)
+    MonoBeam(vec3<double> s0, double divergence, double sigma_divergence)
         : divergence_(divergence),
           sigma_divergence_(sigma_divergence),
           polarization_normal_(0.0, 1.0, 0.0),
@@ -183,7 +183,7 @@ namespace dxtbx { namespace model {
      * @param wavelength The wavelength of the beam
      * @param direction The beam direction vector.
      */
-    MonochromaticBeam(vec3<double> direction,
+    MonoBeam(vec3<double> direction,
          double wavelength,
          double divergence,
          double sigma_divergence)
@@ -198,7 +198,7 @@ namespace dxtbx { namespace model {
       direction_ = direction.normalize();
     }
 
-    MonochromaticBeam(vec3<double> direction,
+    MonoBeam(vec3<double> direction,
          double wavelength,
          double divergence,
          double sigma_divergence,
@@ -218,7 +218,7 @@ namespace dxtbx { namespace model {
     }
 
     /** Virtual destructor */
-    virtual ~MonochromaticBeam() {}
+    virtual ~MonoBeam() {}
 
     /** Get the direction */
     vec3<double> get_sample_to_source_direction() const {
@@ -371,7 +371,7 @@ namespace dxtbx { namespace model {
     }
 
     /** Check two beam models are (almost) the same */
-    bool operator==(const MonochromaticBeam &rhs) const {
+    bool operator==(const MonoBeam &rhs) const {
       double eps = 1.0e-6;
 
       // scan-varying model checks
@@ -408,7 +408,7 @@ namespace dxtbx { namespace model {
     /**
      * Check if two models are similar
      */
-    bool is_similar_to(const MonochromaticBeam &rhs,
+    bool is_similar_to(const MonoBeam &rhs,
                        double wavelength_tolerance,
                        double direction_tolerance,
                        double polarization_normal_tolerance,
@@ -446,7 +446,7 @@ namespace dxtbx { namespace model {
     }
 
     /** Check two beam models are not (almost) the same. */
-    bool operator!=(const MonochromaticBeam &rhs) const {
+    bool operator!=(const MonoBeam &rhs) const {
       return !(*this == rhs);
     }
 
@@ -458,7 +458,7 @@ namespace dxtbx { namespace model {
       polarization_normal_ = polarization_normal_.rotate_around_origin(axis, angle);
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const MonochromaticBeam &b);
+    friend std::ostream &operator<<(std::ostream &os, const MonoBeam &b);
 
   private:
     double wavelength_;
@@ -473,8 +473,8 @@ namespace dxtbx { namespace model {
   };
 
   /** Print beam information */
-  inline std::ostream &operator<<(std::ostream &os, const MonochromaticBeam &b) {
-    os << "MonochromaticBeam:\n";
+  inline std::ostream &operator<<(std::ostream &os, const MonoBeam &b) {
+    os << "MonoBeam:\n";
     os << "    wavelength: " << b.get_wavelength() << "\n";
     os << "    sample to source direction : "
        << b.get_sample_to_source_direction().const_ref() << "\n";

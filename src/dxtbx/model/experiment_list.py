@@ -143,7 +143,7 @@ class ExperimentListDict:
         if "beam" in obj:
             for i in obj["beam"]:
                 if "__id__" not in i and "wavelength" in i:
-                    i["__id__"] = "MonochromaticBeam"
+                    i["__id__"] = "MonoBeam"
 
         return obj
 
@@ -978,7 +978,7 @@ class ImageMetadataRecord:
         filename=None,
         index=None,
     ):
-        # type: (dxtbx.model.MonochromaticBeam, dxtbx.model.Detector, dxtbx.model.Goniometer, dxtbx.model.sequence, str, str, int)
+        # type: (dxtbx.model.MonoBeam, dxtbx.model.Detector, dxtbx.model.Goniometer, dxtbx.model.sequence, str, str, int)
         """
         Args:
             beam:       Stores a beam model

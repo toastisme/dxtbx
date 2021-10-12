@@ -21,7 +21,7 @@ namespace dxtbx { namespace boost_python {
 
   using namespace boost::python;
 
-  using dxtbx::model::MonochromaticBeam;
+  using dxtbx::model::MonoBeam;
   using dxtbx::model::Detector;
   using dxtbx::model::Goniometer;
   using dxtbx::model::Scan;
@@ -33,7 +33,7 @@ namespace dxtbx { namespace boost_python {
 
   class ImageToEwaldSphere {
   public:
-    ImageToEwaldSphere(const MonochromaticBeam &beam,
+    ImageToEwaldSphere(const MonoBeam &beam,
                        const Detector &detector,
                        const Goniometer &gonio,
                        const Scan &scan)
@@ -65,7 +65,7 @@ namespace dxtbx { namespace boost_python {
       return x;
     }
 
-    MonochromaticBeam beam_;
+    MonoBeam beam_;
     Detector detector_;
     Goniometer gonio_;
     Scan scan_;
@@ -73,7 +73,7 @@ namespace dxtbx { namespace boost_python {
 
   void export_to_ewald_sphere_helpers() {
     class_<ImageToEwaldSphere>("ImageToEwaldSphere", no_init)
-      .def(init<const MonochromaticBeam &, const Detector &, const Goniometer &, const Scan &>(
+      .def(init<const MonoBeam &, const Detector &, const Goniometer &, const Scan &>(
         (arg("beam"), arg("detector"), arg("goniometer"), arg("scan"))))
       .def("__call__", &ImageToEwaldSphere::operator());
   }
