@@ -20,7 +20,7 @@ from dxtbx.model import (
     ParallaxCorrectedPxMmStrategy,
     SimplePxMmStrategy,
 )
-from dxtbx.model.beam import MonochromaticBeamFactory
+from dxtbx.model.beam import MonoBeamFactory
 from dxtbx.model.detector import DetectorFactory
 
 
@@ -84,7 +84,7 @@ def test_array(model):
 
 def test_inverted_axis():
     def get_values(invert_y):
-        beam = MonochromaticBeamFactory.make_simple_beam(wavelength=1)
+        beam = MonoBeamFactory.make_simple_beam(wavelength=1)
 
         if invert_y:
             y_direction = "-y"

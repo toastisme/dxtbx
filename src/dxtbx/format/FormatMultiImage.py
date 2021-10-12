@@ -14,7 +14,7 @@ from dxtbx.imageset import (
     ImageSetLazy,
     ImageSetType,
 )
-from dxtbx.model import MultiAxisGoniometer, TOFBeam
+from dxtbx.model import MultiAxisGoniometer, PolyBeam
 
 
 def _add_static_mask_to_iset(format_instance: Format, iset: ImageSet) -> None:
@@ -331,7 +331,7 @@ class FormatMultiImage(Format):
         ):
             if beam is None or detector is None:
                 return True
-            if beam is not None and isinstance(beam, TOFBeam):
+            if beam is not None and isinstance(beam, PolyBeam):
                 return True
             if single_file_indices is None:
                 return True

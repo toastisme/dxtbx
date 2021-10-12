@@ -22,7 +22,7 @@ from dxtbx.model import (
     Experiment,
     ExperimentList,
     Goniometer,
-    MonochromaticBeam,
+    MonoBeam,
     Scan,
     SequenceFactory,
 )
@@ -96,7 +96,7 @@ def test_experiment_list_extend():
 
 def test_experiment_contains():
     # Create a load of models
-    b1 = MonochromaticBeam()
+    b1 = MonoBeam()
     d1 = Detector()
     g1 = Goniometer()
     s1 = Scan()
@@ -115,7 +115,7 @@ def test_experiment_contains():
     assert c1 in e
 
     # Create a load of models that look the same but aren't
-    b2 = MonochromaticBeam()
+    b2 = MonoBeam()
     d2 = Detector()
     g2 = Goniometer()
     s2 = Scan()
@@ -131,14 +131,14 @@ def test_experiment_contains():
 
 def test_experiment_equality():
     # Create a load of models
-    b1 = MonochromaticBeam()
+    b1 = MonoBeam()
     d1 = Detector()
     g1 = Goniometer()
     s1 = Scan()
     c1 = Crystal((1, 0, 0), (0, 1, 0), (0, 0, 1), space_group_symbol="P1")
 
     # Create a load of models that look the same but aren't
-    b2 = MonochromaticBeam()
+    b2 = MonoBeam()
     d2 = Detector()
     g2 = Goniometer()
     s2 = Scan()
@@ -200,7 +200,7 @@ def test_experimentlist_contains(experiment_list):
         assert e.sequence in experiment_list
 
     # Create some more models
-    b = MonochromaticBeam()
+    b = MonoBeam()
     d = Detector()
     g = Goniometer()
     s = Scan()
@@ -262,7 +262,7 @@ def test_experimentlist_indices(experiment_list):
     assert list(experiment_list.indices(s[4])) == [0, 4]
 
     # Check some models not in the list
-    assert len(experiment_list.indices(MonochromaticBeam())) == 0
+    assert len(experiment_list.indices(MonoBeam())) == 0
     assert len(experiment_list.indices(Detector())) == 0
     assert len(experiment_list.indices(Goniometer())) == 0
     assert len(experiment_list.indices(Scan())) == 0
@@ -353,9 +353,9 @@ def experiment_list():
     experiments = ExperimentList()
 
     # Create a few beams
-    b1 = MonochromaticBeam()
-    b2 = MonochromaticBeam()
-    b3 = MonochromaticBeam()
+    b1 = MonoBeam()
+    b2 = MonoBeam()
+    b3 = MonoBeam()
 
     # Create a few detectors
     d1 = Detector()
@@ -492,7 +492,7 @@ def test_experimentlist_factory_from_args(monkeypatch, dials_regression):
 
 def test_experimentlist_factory_from_imageset():
     imageset = Format.get_imageset(["filename.cbf"], as_imageset=True)
-    imageset.set_beam(MonochromaticBeam(), 0)
+    imageset.set_beam(MonoBeam(), 0)
     imageset.set_detector(Detector(), 0)
 
     crystal = Crystal((1, 0, 0), (0, 1, 0), (0, 0, 1), space_group_symbol="P1")
@@ -511,7 +511,7 @@ def test_experimentlist_factory_from_sequence():
 
     imageset = Format.get_imageset(
         filenames,
-        beam=MonochromaticBeam(),
+        beam=MonoBeam(),
         detector=Detector(),
         goniometer=Goniometer(),
         sequence=Scan((1, 2), (0, 1)),
@@ -536,7 +536,7 @@ def test_experimentlist_factory_from_datablock():
 
     imageset = Format.get_imageset(
         filenames,
-        beam=MonochromaticBeam(),
+        beam=MonoBeam(),
         detector=Detector(),
         goniometer=Goniometer(),
         sequence=Scan((1, 2), (0, 1)),
@@ -657,7 +657,7 @@ def test_experimentlist_dumper_dump_empty_sequence(tmp_path):
 
     imageset = Format.get_imageset(
         filenames,
-        beam=MonochromaticBeam((1, 0, 0)),
+        beam=MonoBeam((1, 0, 0)),
         detector=Detector(),
         goniometer=Goniometer(),
         sequence=Scan((1, 2), (0.0, 1.0)),
@@ -744,7 +744,7 @@ def test_experimentlist_with_identifiers():
 
     experiments.append(
         Experiment(
-            beam=MonochromaticBeam(s0=(0, 0, -1)),
+            beam=MonoBeam(s0=(0, 0, -1)),
             detector=Detector(),
             identifier="bacon",
         )
@@ -752,7 +752,7 @@ def test_experimentlist_with_identifiers():
 
     experiments.append(
         Experiment(
-            beam=MonochromaticBeam(s0=(0, 0, -1)),
+            beam=MonoBeam(s0=(0, 0, -1)),
             detector=Detector(),
             identifier="sausage",
         )
@@ -760,9 +760,7 @@ def test_experimentlist_with_identifiers():
 
     with pytest.raises(Exception):
         experiments.append(
-            Experiment(
-                beam=MonochromaticBeam(), detector=Detector(), identifier="bacon"
-            )
+            Experiment(beam=MonoBeam(), detector=Detector(), identifier="bacon")
         )
 
     d = experiments.to_dict()
@@ -945,7 +943,7 @@ def test_experimentlist_imagesequence_stills(dials_data):
 
 def test_experimentlist_imagesequence_decode(mocker):
     # These models are shared between experiments
-    beam = MonochromaticBeam(s0=(0, 0, -1))
+    beam = MonoBeam(s0=(0, 0, -1))
     detector = Detector()
     gonio = Goniometer()
 
@@ -1218,7 +1216,7 @@ def test_from_null_sequence():
     filenames = ["template_%2d.cbf" % (i + 1) for i in range(0, 10)]
     sequence = Format.get_imageset(
         filenames,
-        beam=MonochromaticBeam((0, 0, 1)),
+        beam=MonoBeam((0, 0, 1)),
         detector=Detector(),
         goniometer=Goniometer((1, 0, 0)),
         sequence=Scan((1, 10), (0, 0.1)),

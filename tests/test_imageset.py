@@ -15,8 +15,8 @@ import dxtbx.format.image
 import dxtbx.format.Registry
 from dxtbx.format.FormatCBFMiniPilatus import FormatCBFMiniPilatus as FormatClass
 from dxtbx.imageset import ExternalLookup, ImageSequence, ImageSetData, ImageSetFactory
-from dxtbx.model import Detector, MonochromaticBeam, Panel
-from dxtbx.model.beam import MonochromaticBeamFactory
+from dxtbx.model import Detector, MonoBeam, Panel
+from dxtbx.model.beam import MonoBeamFactory
 from dxtbx.model.experiment_list import ExperimentListFactory
 
 from . import imagelist
@@ -28,7 +28,7 @@ from . import imagelist
 )
 def test_single_file_indices(indices, expected_call_count, lazy, dials_data):
     def dummy_beam():
-        return MonochromaticBeamFactory.make_simple_beam(1.0)
+        return MonoBeamFactory.make_simple_beam(1.0)
 
     with mock.patch.object(
         dxtbx.format.FormatHDF5SaclaMPCCD.FormatHDF5SaclaMPCCD,
@@ -321,7 +321,7 @@ class TestImageSet:
     @staticmethod
     def tst_set_models(imageset):
         # Create some other models
-        beam = MonochromaticBeam((1, 0, 0), 0.5)
+        beam = MonoBeam((1, 0, 0), 0.5)
         detector = Detector(
             Panel(
                 "UNKNOWN",

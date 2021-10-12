@@ -35,7 +35,7 @@ namespace dxtbx { namespace model {
    *   - imageset Access to the image data 
    *    (ImageSet, ImageSetLazy, ImageSequence, 
    *     ImageGrid, ImageSequence)
-   *   - beam The beam model (MonochromaticBeam, TOFBeam)
+   *   - beam The beam model (MonoBeam, PolyBeam)
    *   - detector The detector model
    *   - goniometer The goniometer model
    *   - sequence The sequence model (Sequence, Scan, TOFSequence)
@@ -176,7 +176,7 @@ namespace dxtbx { namespace model {
         return false;
       }
       std::string beam_type = boost::python::extract<std::string>(beam_.attr("__class__").attr("__name__"));
-      if (beam_type != "TOFBeam"){
+      if (beam_type != "PolyBeam"){
         return false;
       }
       std::string imageset_type = boost::python::extract<std::string>(imageset_.attr("__class__").attr("__name__"));

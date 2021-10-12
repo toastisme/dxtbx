@@ -14,7 +14,7 @@ from scitbx import matrix
 from scitbx.array_family import flex
 
 from dxtbx.imageset import ImageGrid, ImageSequence, ImageSet
-from dxtbx.model.beam import BeamFactory, MonochromaticBeamFactory, TOFBeamFactory
+from dxtbx.model.beam import BeamFactory, MonoBeamFactory, PolyBeamFactory
 from dxtbx.model.crystal import CrystalFactory
 from dxtbx.model.detector import DetectorFactory
 from dxtbx.model.goniometer import GoniometerFactory
@@ -25,8 +25,8 @@ from dxtbx.util import format_float_with_standard_uncertainty
 try:
     from ..dxtbx_model_ext import (
         Beam,
-        MonochromaticBeam,
-        TOFBeam,
+        MonoBeam,
+        PolyBeam,
         Crystal,
         CrystalBase,
         Detector,
@@ -63,7 +63,8 @@ try:
 except ModuleNotFoundError:
     from dxtbx_model_ext import (  # type: ignore
         Beam,
-        MonochromaticBeam,
+        MonoBeam,
+        PolyBeam,
         Crystal,
         CrystalBase,
         Detector,
@@ -99,12 +100,12 @@ except ModuleNotFoundError:
     )
 
 __all__ = (
-    "MonochromaticBeam",
-    "TOFBeam",
+    "MonoBeam",
+    "PolyBeam",
     "Beam",
     "BeamFactory",
-    "MonochromaticBeamFactory",
-    "TOFBeamFactory",
+    "MonoBeamFactory",
+    "PolyBeamFactory",
     "Crystal",
     "CrystalBase",
     "CrystalFactory",

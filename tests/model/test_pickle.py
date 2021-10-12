@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pickle
 
-from dxtbx.model import Detector, Goniometer, MonochromaticBeam, Panel, Scan
+from dxtbx.model import Detector, Goniometer, MonoBeam, Panel, Scan
 
 
 def pickle_then_unpickle(obj):
@@ -12,7 +12,7 @@ def pickle_then_unpickle(obj):
 
 def test_beam():
     """Test pickling the beam object."""
-    obj1 = MonochromaticBeam((1, 1, 1))
+    obj1 = MonoBeam((1, 1, 1))
     obj2 = pickle_then_unpickle(obj1)
     assert obj1 == obj2
 
