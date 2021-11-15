@@ -198,8 +198,8 @@ namespace dxtbx { namespace model {
     }
 
     vec2<double> get_tof_range_in_seconds() const{
-      return vec2<double>(tof_in_seconds_[0], 
-                          tof_in_seconds_[tof_in_seconds_.size()-1]);
+      return vec2<double>(tof_in_seconds_[image_range_[0]-1], 
+                          tof_in_seconds_[image_range_[1]-1]);
     }
 
     double get_image_tof(int index) const {
