@@ -193,6 +193,15 @@ namespace dxtbx { namespace model {
       return tof_in_seconds_;
     }
 
+    int get_num_tof_bins() const{
+      return static_cast<int>(tof_in_seconds_.size());
+    }
+
+    vec2<double> get_tof_range_in_seconds() const{
+      return vec2<double>(tof_in_seconds_[0], 
+                          tof_in_seconds_[tof_in_seconds_.size()-1]);
+    }
+
     double get_image_tof(int index) const {
       DXTBX_ASSERT(image_range_[0] <= index && index <= image_range_[1]);
       return tof_in_seconds_[index - image_range_[0]];
@@ -658,7 +667,7 @@ namespace dxtbx { namespace model {
     os << "ToF Sequence:\n";
     os << "    number of images:   " << s.get_num_images() << "\n";
     os << "    image range:   " << s.get_image_range().const_ref() << "\n";
-    os << "    ToF range:   " << s.tof_in_seconds_.const_ref() << "\n";
+    os << "    ToF range:   " << s.get_tof_range_in_seconds().const_ref() << "\n";
     return os;
   }
 

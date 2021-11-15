@@ -542,6 +542,8 @@ namespace dxtbx { namespace model { namespace boost_python {
             .def("__getitem__", &tof_sequence_getitem_single)
             .def("__getitem__", &tof_sequence_getitem_slice)
             .def("swap", &tof_sequence_swap)
+            .def("__len__", &TOFSequence::get_num_tof_bins)
+            .def("__str__", &tof_sequence_to_string)
             .def_pickle(TOFSequencePickleSuite());
 
 
