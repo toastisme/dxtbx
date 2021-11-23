@@ -171,8 +171,38 @@ class FormatISISSXD(FormatNXTOFRAW):
 
     def get_wavelength_channels_in_ang(self):
         time_channels = self._get_time_channels_in_seconds()
-        L = self._get_primary_flight_path_in_m()
+        L = self._get_sample_to_moderator_distance() * 10 ** -3
         return [self.get_tof_wavelength_in_ang(L, i) for i in time_channels]
+
+    def get_wavelength_channels(self):
+        time_channels = self._get_time_channels_in_seconds()
+        L = self._get_sample_to_moderator_distance() * 10 ** -3
+        return [self.get_tof_wavelength(L, i) for i in time_channels]
+
+    def get_duration_in_uA(self):
+        return self.nxs_file["raw_data_1"]["collection_time"][0]
+
+    def get_gutmann_profile_params(self):
+
+        """
+        Taken from SXDII_corrected.instr
+        Parameters for profile described in
+        https://doi.org/10.1016/j.nima.2016.12.026
+
+        dt/t: eq (7)
+        dtheta: eq (7)
+        alpha: eq (6)
+        beta: eq (6)
+        beta_w: wavelength-dependent verstion of beta
+        """
+
+        return {
+            "dt/t": 0.008,
+            "dtheta": 1.000,
+            "alpha": 2.000,
+            "beta": 0.030,
+            "beta_w": 0.015,
+        }
 
     def _get_sample_to_moderator_distance(self):
         return 8300
@@ -257,7 +287,6 @@ class FormatISISSXD(FormatNXTOFRAW):
 
     def _get_unit_s0(self):
         return (0, 0, 1)
-        return tuple(self._get_s0() / np.linalg.norm(self._get_s0()))
 
     def _get_sample_to_source_direction(self):
         return (0, 0, -1)
@@ -300,7 +329,9 @@ class FormatISISSXD(FormatNXTOFRAW):
         image_range = (1, self.get_num_images())
         tof_in_seconds = self.get_tof_in_seconds()
         return SequenceFactory.make_tof_sequence(
-            image_range=image_range, tof_in_seconds=tof_in_seconds
+            image_range=image_range,
+            tof_in_seconds=tof_in_seconds,
+            wavelengths=self.get_wavelength_channels(),
         )
 
     def get_goniometer(self, idx=None):
@@ -342,8 +373,11 @@ class FormatISISSXD(FormatNXTOFRAW):
         array_shape = (panel_size[0], panel_size[1], time_channel_size)
         return [i.reshape(array_shape) for i in panel_raw_data]
 
+    def get_tof_wavelength(self, L, tof):
+        return (Planck * tof) / (m_n * L)
+
     def get_tof_wavelength_in_ang(self, L, tof):
-        return ((Planck * tof) / (m_n * L)) * 10 ** 10
+        return self.get_tof_wavelength(L, tof) * 10 ** 10
 
     def get_max_slice_index(self):
         return len(self.get_tof_in_seconds()) - 1
