@@ -60,6 +60,17 @@ class FormatISISSXD(FormatNXTOFRAW):
 
         return get_name(image_file) == "SXD"
 
+    def get_spectra_idx_1D(self, panel: int, x_px: int, y_px: int) -> int:
+
+        image_size = self._get_panel_size_in_px()
+        total_pixels = image_size[0] * image_size[1]
+        # Index offset in SXD data
+        # See p24 of https://www.isis.stfc.ac.uk/Pages/sxd-user-guide6683.pdf
+        idx_offset = 4
+        panel_idx = (y_px * image_size[1]) + x_px
+        panel_start_idx = (total_pixels * panel) + (idx_offset * panel)
+        return int(panel_start_idx + panel_idx)
+
     def load_raw_data(self, as_numpy_arrays=False):
         def get_detector_idx_array(detector_number, image_size, idx_offset):
             total_pixels = image_size[0] * image_size[1]
@@ -178,6 +189,10 @@ class FormatISISSXD(FormatNXTOFRAW):
         time_channels = self._get_time_channels_in_seconds()
         L = self._get_sample_to_moderator_distance() * 10 ** -3
         return [self.get_tof_wavelength(L, i) for i in time_channels]
+
+    def get_wavelength_channels_in_A(self):
+        wavelengths = self.get_wavelength_channels()
+        return [i * 10 ** 10 for i in wavelengths]
 
     def get_duration_in_uA(self):
         return self.nxs_file["raw_data_1"]["collection_time"][0]
@@ -331,7 +346,7 @@ class FormatISISSXD(FormatNXTOFRAW):
         return SequenceFactory.make_tof_sequence(
             image_range=image_range,
             tof_in_seconds=tof_in_seconds,
-            wavelengths=self.get_wavelength_channels(),
+            wavelengths=self.get_wavelength_channels_in_A(),
         )
 
     def get_goniometer(self, idx=None):
