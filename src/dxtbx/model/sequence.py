@@ -161,10 +161,11 @@ class SequenceFactory:
         )
 
     @staticmethod
-    def make_tof_sequence(image_range, tof_in_seconds, batch_offset=0):
+    def make_tof_sequence(image_range, tof_in_seconds, wavelengths, batch_offset=0):
         return TOFSequence(
             tuple(map(int, image_range)),
             flex.double(list(map(float, tof_in_seconds))),
+            flex.double(list(map(float, wavelengths))),
             batch_offset,
         )
 
