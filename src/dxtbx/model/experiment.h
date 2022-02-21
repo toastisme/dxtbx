@@ -152,13 +152,16 @@ namespace dxtbx { namespace model {
      * Check if this experiment represents a still image
      */
     bool is_still() const {
-      if (!goniometer_){return true;} 
       if (!sequence_){return true;} 
       std::string sequence_type = boost::python::extract<std::string>(sequence_.attr("__class__").attr("__name__"));
       if (sequence_type == "Scan"){
         Scan scan = boost::python::extract<Scan>(sequence_);
         return scan.get_oscillation()[1] == 0.0;
       }
+      else if (sequence_type == "TOFSequence"){
+        return false;
+      }
+      if (!goniometer_){return true;} 
       return false;
     }
 

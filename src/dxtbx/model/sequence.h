@@ -170,8 +170,9 @@ namespace dxtbx { namespace model {
   public:
 
     TOFSequence()
-        : Sequence((0,0), 0),
-          tof_in_seconds_(num_images_, 0){}
+        : Sequence(vec2<int>{0,0}, 0),
+          tof_in_seconds_(num_images_, 0),
+          wavelengths_(num_images_, 0){}
 
     /**
      * @param image_range The range of images covered by the sequence
@@ -182,15 +183,29 @@ namespace dxtbx { namespace model {
      */
     TOFSequence(vec2<int> image_range, 
                 const scitbx::af::shared<double> &tof_in_seconds,
+                const scitbx::af::shared<double> &wavelengths,
                 int batch_offset=0)
                 : Sequence(image_range, batch_offset),
-                tof_in_seconds_(tof_in_seconds){
+                tof_in_seconds_(tof_in_seconds),
+                wavelengths_(wavelengths){
                 }
 
     virtual ~TOFSequence() {}
 
     scitbx::af::shared<double> get_tof_in_seconds() const {
-      return tof_in_seconds_;
+      scitbx::af::shared<double> tof_in_seconds;
+      for (int i=image_range_[0]-1; i<image_range_[1]-1; ++i){
+        tof_in_seconds.push_back(tof_in_seconds_[i]);
+      }
+      return tof_in_seconds;
+    }
+
+    scitbx::af::shared<double> get_wavelengths() const{
+    scitbx::af::shared<double> wavelengths;
+      for (int i=image_range_[0]-1; i<image_range_[1]-1; ++i){
+        wavelengths.push_back(wavelengths_[i]);
+      }
+      return wavelengths;
     }
 
     int get_num_tof_bins() const{
@@ -207,8 +222,9 @@ namespace dxtbx { namespace model {
       return tof_in_seconds_[index - image_range_[0]];
     }
 
-    void set_tof_in_seconds(scitbx::af::shared<double> tof_in_seconds){
-      tof_in_seconds_ = tof_in_seconds;
+    double get_image_wavelength(int index) const {
+      DXTBX_ASSERT(image_range_[0] <= index && index <= image_range_[1]);
+      return wavelengths_[index - image_range_[0]];
     }
 
     void append(const TOFSequence &rhs) {
@@ -240,9 +256,13 @@ namespace dxtbx { namespace model {
       scitbx::af::shared<double> new_tof_in_seconds(1);
       new_tof_in_seconds[0] = get_image_tof(image_index);
 
+      scitbx::af::shared<double> new_wavelengths(1);
+      new_wavelengths[0] = get_image_wavelength(image_index);
+
       // Return scan
       return TOFSequence(vec2<int>(image_index, image_index),
                   new_tof_in_seconds,
+                  new_wavelengths,
                   get_batch_offset());
     }
 
@@ -250,7 +270,6 @@ namespace dxtbx { namespace model {
      * Append the rhs sequence onto the current sequence
      */
     TOFSequence &operator+=(const TOFSequence &rhs) {
-      // Set the epsilon to 1% of oscillation range
       append(rhs);
       return *this;
     }
@@ -271,8 +290,7 @@ namespace dxtbx { namespace model {
 
   private:
     scitbx::af::shared<double> tof_in_seconds_;
-    
-
+    scitbx::af::shared<double> wavelengths_;
   };
 
   /** A class to represent a scan */
@@ -280,7 +298,7 @@ namespace dxtbx { namespace model {
   public:
     /** The default constructor */
     Scan()
-        : Sequence((0, 0), 0),
+        : Sequence(vec2<int>{0, 0}, 0),
           oscillation_(0.0, 0.0),
           is_still_(false) {}
 
