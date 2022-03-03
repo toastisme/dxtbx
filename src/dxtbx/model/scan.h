@@ -29,13 +29,10 @@ namespace dxtbx { namespace model {
 
   typedef std::map<std::string, scitbx::af::shared<vec2<int> > > ExpImgRangeMap;
 
-  /** A scan base class */
   class ScanBase {};
 
-  /** A class to represent a scan */
   class Scan : public ScanBase {
   public:
-    /** The default constructor */
     Scan()
         : image_range_(0, 0),
           oscillation_(0.0, 0.0),
@@ -44,7 +41,6 @@ namespace dxtbx { namespace model {
           is_still_(false) {}
 
     /**
-     * Initialise the class
      * @param image_range The range of images covered by the scan
      * @param oscillation A tuple containing the start angle of the first image
      *                    and the oscillation range (the angular width) of each
@@ -68,7 +64,6 @@ namespace dxtbx { namespace model {
     }
 
     /**
-     * Initialise the class
      * @param image_range The range of images covered by the scan
      * @param oscillation A tuple containing the start angle of the first image
      *                    and the oscillation range (the angular width) of each
@@ -126,10 +121,8 @@ namespace dxtbx { namespace model {
                 std::back_inserter(exposure_times_));
     }
 
-    /** Virtual destructor */
     virtual ~Scan() {}
 
-    /** Get the image range */
     vec2<int> get_image_range() const {
       return image_range_;
     }
@@ -152,9 +145,9 @@ namespace dxtbx { namespace model {
       return empty;
     }
 
+    /** Set a list of valid image range tuples for experiment identifier 'i'**/
     void set_valid_image_ranges_array(std::string i,
                                       scitbx::af::shared<vec2<int> > values) {
-      /** Set a list of valid image range tuples for experiment identifier 'i'**/
       for (std::size_t j = 0; j < values.size(); ++j) {
         vec2<int> pair = values[j];
         DXTBX_ASSERT(pair[0] >= image_range_[0]);
@@ -165,58 +158,47 @@ namespace dxtbx { namespace model {
       valid_image_ranges_[i] = values;
     }
 
-    /** Get the batch offset */
     int get_batch_offset() const {
       return batch_offset_;
     }
 
-    /** Get the still flag */
     bool is_still() const {
       return is_still_;
     }
 
-    /** Get the batch number for a given image index */
     int get_batch_for_image_index(int index) const {
       return index + batch_offset_;
     }
 
-    /** Get the batch number for a given array index */
     int get_batch_for_array_index(int index) const {
       return index + batch_offset_ + 1;
     }
 
-    /** Get the batch range */
     vec2<int> get_batch_range() const {
       return vec2<int>(image_range_[0] + batch_offset_,
                        image_range_[1] + batch_offset_);
     }
 
-    /** Get the array range (zero based) */
     vec2<int> get_array_range() const {
       return vec2<int>(image_range_[0] - 1, image_range_[1]);
     }
 
-    /** Get the oscillation */
     vec2<double> get_oscillation() const {
       return oscillation_;
     }
 
-    /** Get the number of images */
     int get_num_images() const {
       return num_images_;
     }
 
-    /** Get the exposure time */
     scitbx::af::shared<double> get_exposure_times() const {
       return exposure_times_;
     }
 
-    /** Get the image epochs */
     scitbx::af::shared<double> get_epochs() const {
       return epochs_;
     }
 
-    /** Set the image range */
     void set_image_range(vec2<int> image_range) {
       image_range_ = image_range;
       num_images_ = 1 + image_range_[1] - image_range_[0];
@@ -225,12 +207,10 @@ namespace dxtbx { namespace model {
       DXTBX_ASSERT(num_images_ > 0);
     }
 
-    /** Set the batch_offset */
     void set_batch_offset(int batch_offset) {
       batch_offset_ = batch_offset;
     }
 
-    /** Set the oscillation */
     void set_oscillation(vec2<double> oscillation) {
       DXTBX_ASSERT(oscillation[1] >= 0.0);
       if (oscillation[1] != 0.0) {
@@ -246,19 +226,16 @@ namespace dxtbx { namespace model {
       }
     }
 
-    /** Set the exposure time */
     void set_exposure_times(scitbx::af::shared<double> exposure_times) {
       DXTBX_ASSERT(exposure_times.size() == num_images_);
       exposure_times_ = exposure_times;
     }
 
-    /** Set the image epochs */
     void set_epochs(const scitbx::af::shared<double> &epochs) {
       DXTBX_ASSERT(epochs.size() == num_images_);
       epochs_ = epochs;
     }
 
-    /** Get the total oscillation range of the scan */
     vec2<double> get_oscillation_range() const {
       return vec2<double>(oscillation_[0],
                           oscillation_[0] + num_images_ * oscillation_[1]);
@@ -270,7 +247,6 @@ namespace dxtbx { namespace model {
                           oscillation_[1]);
     }
 
-    /** Get the image epoch */
     double get_image_epoch(int index) const {
       DXTBX_ASSERT(image_range_[0] <= index && index <= image_range_[1]);
       return epochs_[index - image_range_[0]];
@@ -281,7 +257,6 @@ namespace dxtbx { namespace model {
       return exposure_times_[index - image_range_[0]];
     }
 
-    /** Check the scans are the same */
     bool operator==(const Scan &rhs) const {
       double eps = 1e-7;
       return image_range_ == rhs.image_range_ && batch_offset_ == rhs.batch_offset_
@@ -292,34 +267,25 @@ namespace dxtbx { namespace model {
              && epochs_.const_ref().all_approx_equal(rhs.epochs_.const_ref(), eps);
     }
 
-    /** Check the scans are not the same */
     bool operator!=(const Scan &scan) const {
       return !(*this == scan);
     }
 
-    /** Comparison operator */
     bool operator<(const Scan &scan) const {
       return image_range_[0] < scan.image_range_[0];
     }
 
-    /** Comparison operator */
     bool operator<=(const Scan &scan) const {
       return image_range_[0] <= scan.image_range_[0];
     }
 
-    /** Comparison operator */
     bool operator>(const Scan &scan) const {
       return image_range_[0] > scan.image_range_[0];
     }
 
-    /** Comparison operator */
     bool operator>=(const Scan &scan) const {
       return image_range_[0] >= scan.image_range_[0];
     }
-
-    /**
-     * Append the rhs scan onto the current scan
-     */
 
     void append(const Scan &rhs, double scan_tolerance) {
       DXTBX_ASSERT(is_still_ == rhs.is_still_);
@@ -393,18 +359,15 @@ namespace dxtbx { namespace model {
       return is_angle_in_range(get_oscillation_range(), angle);
     }
 
-    /** Check if the index is valid */
     bool is_image_index_valid(double index) const {
       return (image_range_[0] <= index && index <= image_range_[1]);
     }
 
-    /** Check if a given batch is valid */
     bool is_batch_valid(int batch) const {
       vec2<int> batch_range = get_batch_range();
       return (batch_range[0] <= batch && batch <= batch_range[1]);
     }
 
-    /** Check if the array index is valid */
     bool is_array_index_valid(double index) const {
       return is_image_index_valid(index + 1);
     }
@@ -446,7 +409,7 @@ namespace dxtbx { namespace model {
     }
 
     /**
-     * A function to calculate all the frames in the scan at which an
+     * Calculate all the frames in the scan at which an
      * observation with a given angle will be observed. I.e. for a given angle,
      * find all the equivalent angles (i.e. mod 2pi) within the scan range and
      * calculate the frame number for each angle.
