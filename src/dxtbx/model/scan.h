@@ -143,13 +143,23 @@ namespace dxtbx { namespace model {
      *                     unique batch numbers for multi-crystal datasets)
      */
     Scan(vec2<int> image_range, vec2<double> oscillation, int batch_offset = 0)
-        : oscillation_(oscillation),
-          exposure_times_(num_images_, 0.0),
-          epochs_(num_images_, 0.0) {
+        : oscillation_(oscillation) {
       image_range_ = image_range;
       batch_offset_ = batch_offset;
+
       num_images_ = 1 + image_range_[1] - image_range_[0];
       DXTBX_ASSERT(num_images_ >= 0);
+
+      scitbx::af::shared<double> exposure_times;
+      scitbx::af::shared<double> epochs;
+      exposure_times.reserve(num_images_);
+      epochs.reserve(num_images_);
+      for (int j = 0; j < num_images_; j++) {
+        exposure_times.push_back(0.0);
+        epochs.push_back(0.0);
+      }
+      exposure_times_ = exposure_times;
+      epochs_ = epochs;
     }
 
     /**
