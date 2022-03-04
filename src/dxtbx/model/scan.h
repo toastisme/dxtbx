@@ -618,6 +618,22 @@ namespace dxtbx { namespace model {
       return lhs;
     }
 
+    bool operator<(const TOFSequence &other) const {
+      return image_range_[0] < other.image_range_[0];
+    }
+
+    bool operator<=(const TOFSequence &other) const {
+      return image_range_[0] <= other.image_range_[0];
+    }
+
+    bool operator>(const TOFSequence &other) const {
+      return image_range_[0] > other.image_range_[0];
+    }
+
+    bool operator>=(const TOFSequence &other) const {
+      return image_range_[0] >= other.image_range_[0];
+    }
+
     friend std::ostream &operator<<(std::ostream &os, const TOFSequence &s);
 
   private:
