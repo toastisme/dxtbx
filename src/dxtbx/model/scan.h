@@ -119,6 +119,10 @@ namespace dxtbx { namespace model {
       return is_image_index_valid(index + 1);
     }
 
+    virtual bool is_still() const {
+      return false;
+    }
+
   protected:
     vec2<int> image_range_;
     int num_images_;
@@ -128,7 +132,7 @@ namespace dxtbx { namespace model {
 
   class Scan : public ScanBase {
   public:
-    Scan() : oscillation_(0.0, 0.0), is_still_(false) {}
+    Scan() : oscillation_(0.0, 0.0) {}
 
     /**
      * @param image_range The range of images covered by the scan
@@ -146,11 +150,6 @@ namespace dxtbx { namespace model {
       batch_offset_ = batch_offset;
       num_images_ = 1 + image_range_[1] - image_range_[0];
       DXTBX_ASSERT(num_images_ >= 0);
-      if (oscillation[1] != 0.0) {
-        is_still_ = false;
-      } else {
-        is_still_ = true;
-      }
     }
 
     /**
@@ -173,11 +172,6 @@ namespace dxtbx { namespace model {
       batch_offset_ = batch_offset;
       num_images_ = 1 + image_range_[1] - image_range_[0];
       DXTBX_ASSERT(num_images_ >= 0);
-      if (oscillation[1] != 0.0) {
-        is_still_ = false;
-      } else {
-        is_still_ = true;
-      }
       if (exposure_times_.size() == 1 && num_images_ > 1) {
         // assume same exposure time for all images - there is
         // probably a better way of coding this...
@@ -196,7 +190,6 @@ namespace dxtbx { namespace model {
     /** Copy */
     Scan(const Scan &rhs)
         : oscillation_(rhs.oscillation_),
-          is_still_(rhs.is_still_),
           exposure_times_(scitbx::af::reserve(rhs.exposure_times_.size())),
           epochs_(scitbx::af::reserve(rhs.epochs_.size())) {
       image_range_ = rhs.image_range_;
@@ -212,7 +205,7 @@ namespace dxtbx { namespace model {
     virtual ~Scan() {}
 
     bool is_still() const {
-      return is_still_;
+      return std::abs(oscillation_[1]) < min_oscillation_width_;
     }
 
     vec2<double> get_oscillation() const {
@@ -237,17 +230,7 @@ namespace dxtbx { namespace model {
 
     void set_oscillation(vec2<double> oscillation) {
       DXTBX_ASSERT(oscillation[1] >= 0.0);
-      if (oscillation[1] != 0.0) {
-        is_still_ = false;
-      } else {
-        is_still_ = true;
-      }
       oscillation_ = oscillation;
-      if (oscillation[1] != 0.0) {
-        is_still_ = false;
-      } else {
-        is_still_ = true;
-      }
     }
 
     void set_exposure_times(scitbx::af::shared<double> exposure_times) {
@@ -312,8 +295,8 @@ namespace dxtbx { namespace model {
     }
 
     void append(const Scan &rhs, double scan_tolerance) {
-      DXTBX_ASSERT(is_still_ == rhs.is_still_);
-      if (is_still_) {
+      DXTBX_ASSERT(is_still() == rhs.is_still());
+      if (is_still()) {
         append_still(rhs);
       } else {
         append_rotation(rhs, scan_tolerance);
@@ -489,9 +472,9 @@ namespace dxtbx { namespace model {
 
   private:
     vec2<double> oscillation_;
-    bool is_still_;
     scitbx::af::shared<double> exposure_times_;
     scitbx::af::shared<double> epochs_;
+    double min_oscillation_width_ = 1e-7;
   };
 
   /** Print Scan information */
