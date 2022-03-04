@@ -506,7 +506,7 @@ namespace dxtbx { namespace model {
   /** A class to represent a time-of-flight histogram data as a sequence of 2D images*/
   class TOFSequence : public ScanBase {
   public:
-    TOFSequence() : tof_in_seconds_(num_images_, 0), wavelengths_(num_images_, 0) {}
+    TOFSequence() : tof_(num_images_, 0), wavelengths_(num_images_, 0) {}
 
     /**
      * @param image_range The range of images covered by the sequence (inclusive)
@@ -556,7 +556,7 @@ namespace dxtbx { namespace model {
 
     double get_image_tof(int index) const {
       DXTBX_ASSERT(image_range_[0] <= index && index <= image_range_[1]);
-      return tof_in_seconds_[index - image_range_[0]];
+      return tof_[index - image_range_[0]];
     }
 
     double get_image_wavelength(int index) const {
@@ -576,7 +576,8 @@ namespace dxtbx { namespace model {
       double eps = 1e-7;
       return get_image_range() == rhs.get_image_range()
              && get_batch_offset() == rhs.get_batch_offset()
-             && wavelengths_.const_ref().all_approx_equal(rhs.wavelengths_.const_ref())
+             && wavelengths_.const_ref().all_approx_equal(rhs.wavelengths_.const_ref(),
+                                                          eps)
              && tof_.const_ref().all_approx_equal(rhs.tof_.const_ref(), eps);
     }
 
@@ -586,17 +587,9 @@ namespace dxtbx { namespace model {
     }
 
     TOFSequence operator[](int index) const {
-      // Check index
       DXTBX_ASSERT((index >= 0) && (index < get_num_images()));
       int image_index = get_image_range()[0] + index;
 
-      scitbx::af::shared<double> new_tof_in_seconds(1);
-      new_tof_in_seconds[0] = get_image_tof(image_index);
-
-      scitbx::af::shared<double> new_wavelengths(1);
-      new_wavelengths[0] = get_image_wavelength(image_index);
-
-      // Return scan
       return TOFSequence(
         vec2<int>(image_index, image_index),
         scitbx::af::shared<double>(tof_.begin() + image_range_[0] - 1,
@@ -637,7 +630,7 @@ namespace dxtbx { namespace model {
     os << "ToF Sequence:\n";
     os << "    number of images:   " << s.get_num_images() << "\n";
     os << "    image range:   " << s.get_image_range().const_ref() << "\n";
-    os << "    ToF range:   " << s.get_tof_range_in_seconds().const_ref() << "\n";
+    os << "    ToF range:   " << s.get_tof_range().const_ref() << "\n";
     return os;
   }
 
