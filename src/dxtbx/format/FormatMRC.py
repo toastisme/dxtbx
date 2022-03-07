@@ -257,7 +257,12 @@ class FormatMRCimages(FormatMRC):
             index = int(re.match(".*?([0-9]+)$", s).group(1))
         except AttributeError:
             index = 1
-        return ScanFactory.make_scan((index, index), exposure, oscillation, {index: 0})
+        return ScanFactory.make_scan(
+            image_range=(index, index),
+            exposure_times=exposure,
+            oscillation=oscillation,
+            epochs={index: 0},
+        )
 
     def get_raw_data(self):
 
