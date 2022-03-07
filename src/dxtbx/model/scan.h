@@ -546,6 +546,14 @@ namespace dxtbx { namespace model {
                                         wavelengths_.begin() + image_range_[1]);
     }
 
+    // These are set together to avoid them having different sizes
+    void set_tof_wavelengths(scitbx::af::shared<double> tof,
+                             scitbx::af::shared<double> wavelengths) {
+      DXTBX_ASSERT(tof.size() == wavelengths.size());
+      tof_ = tof;
+      wavelengths_ = wavelengths;
+    }
+
     int get_num_tof_bins() const {
       return static_cast<int>(tof_.size());
     }

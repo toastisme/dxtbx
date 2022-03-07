@@ -546,6 +546,7 @@ namespace dxtbx { namespace model { namespace boost_python {
                              arg("epochs"),
                              arg("batch_offset") = 0,
                              arg("deg") = true)))
+      .def("set_image_range", &Scan::set_image_range)
       .def("get_oscillation", &get_oscillation, (arg("deg") = true))
       .def("set_oscillation", &set_oscillation, (arg("deg") = true))
       .def("is_still", &Scan::is_still)
@@ -620,6 +621,7 @@ namespace dxtbx { namespace model { namespace boost_python {
       .def("get_tof_range", &TOFSequence::get_tof_range)
       .def("get_image_tof", &TOFSequence::get_image_tof)
       .def("get_image_wavelength", &TOFSequence::get_image_wavelength)
+      .def("set_tof_wavelengths", &TOFSequence::set_tof_wavelengths)
       .def("__deepcopy__", &tof_sequence_deepcopy)
       .def("__copy__", &tof_sequence_copy)
       .def("to_dict", &to_dict<TOFSequence>)
