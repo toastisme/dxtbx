@@ -6,8 +6,14 @@ import pytest
 
 from libtbx.phil import parse
 
-from dxtbx.model import Scan
-from dxtbx.model.scan import ScanFactory, scan_phil_scope
+from dxtbx.model import Scan, TOFSequence
+from dxtbx.model.scan import (
+    ScanBaseFactory,
+    ScanFactory,
+    ScanType,
+    TOFSequenceFactory,
+    scan_phil_scope,
+)
 
 
 @pytest.fixture
@@ -174,3 +180,117 @@ def test_from_phil():
     for i in range(ir1, ir2):
         assert s2.get_batch_for_image_index(i) == i + s2.get_batch_offset()
         assert s2.is_batch_valid(s2.get_batch_for_image_index(i))
+
+
+def test_scan_factory_make_scan_consistency():
+
+    # ScanFactory test
+    image_range = (1, 10)
+    oscillation = (0, 0.1)
+    exposure_times = 10
+    epochs = tuple([1 for i in range(10)])
+
+    scan1 = ScanFactory.make_scan(
+        image_range=image_range,
+        oscillation=oscillation,
+        exposure_times=exposure_times,
+        epochs=epochs,
+    )
+    scan2 = ScanBaseFactory.make_scan(
+        image_range=image_range,
+        oscillation=oscillation,
+        exposure_times=exposure_times,
+        epochs=epochs,
+    )
+    scan3 = ScanBaseFactory.make_scan(
+        scan_type=ScanType.Rotational,
+        image_range=image_range,
+        oscillation=oscillation,
+        exposure_times=exposure_times,
+        epochs=epochs,
+    )
+
+    assert scan1 == scan2 == scan3
+
+    # TOFSequenceFactory test
+    tof = tuple([1 for i in range(10)])
+    wavelengths = tuple([1 for i in range(10)])
+
+    scan1 = TOFSequenceFactory.make_scan(
+        image_range=image_range, tof=tof, wavelengths=wavelengths
+    )
+
+    scan2 = ScanBaseFactory.make_scan(
+        scan_type=ScanType.TOF,
+        image_range=image_range,
+        tof=tof,
+        wavelengths=wavelengths,
+    )
+
+    assert scan1 == scan2
+
+
+def test_scan_factory_from_phil_consistency():
+
+    # ScanFactory tests
+    params = scan_phil_scope.fetch(
+        parse(
+            """
+    scan {
+      image_range = 1, 10
+      oscillation = (-4, 0.1)
+    }
+  """
+        )
+    ).extract()
+
+    scan1 = ScanFactory.from_phil(params)
+    scan2 = ScanBaseFactory.from_phil(params)
+    assert scan1 == scan2
+
+    params = scan_phil_scope.fetch(
+        parse(
+            """
+    scan {
+      type = rotational
+      image_range = 1, 10
+      oscillation = (-4, 0.1)
+    }
+  """
+        )
+    ).extract()
+
+    scan1 = ScanFactory.from_phil(params)
+    scan2 = ScanBaseFactory.from_phil(params)
+    assert scan1 == scan2
+
+    # TOFSequenceFactory tests
+    params = scan_phil_scope.fetch(
+        parse(
+            """
+    scan {
+      type = tof
+      image_range = 1, 2
+      tof = (10,10)
+      tof_wavelengths = (10,10)
+    }
+  """
+        )
+    ).extract()
+
+    scan1 = TOFSequenceFactory.from_phil(params)
+    scan2 = ScanBaseFactory.from_phil(params)
+    assert scan1 == scan2
+
+
+def test_scan_factory_from_dict_consistency():
+
+    scan_dict = Scan().to_dict()
+    scan1 = ScanFactory.from_dict(scan_dict)
+    scan2 = ScanBaseFactory.from_dict(scan_dict)
+    assert scan1 == scan2
+
+    scan_dict = TOFSequence().to_dict()
+    scan1 = TOFSequenceFactory.from_dict(scan_dict)
+    scan2 = ScanBaseFactory.from_dict(scan_dict)
+    assert scan1 == scan2

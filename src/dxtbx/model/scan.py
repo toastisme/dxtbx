@@ -24,7 +24,7 @@ scan_phil_scope = libtbx.phil.parse(
     .expert_level = 1
     .short_caption = "Scan overrides"
   {
-    type = *scan tof
+    type = *rotational tof
       .type = choice
       .help = "Override the scan type"
       .short_caption = "scan_type"
@@ -50,7 +50,7 @@ scan_phil_scope = libtbx.phil.parse(
       .short_caption = "Batch offset"
 
     tof = None
-      .type floats
+      .type = floats
       .help = "Overrides time-of-flight values"
       .short_caption = "Time-of-flight"
 
@@ -84,7 +84,7 @@ class AbstractScanFactory(ABC):
 
     @staticmethod
     @abstractmethod
-    def from_dict(dict: Dict, template: Dict) -> ScanBase:
+    def from_dict(dict: Dict, template: Dict = None) -> ScanBase:
         """
         Convert dictionary to a scan model
         """
@@ -114,10 +114,10 @@ class ScanBaseFactory(AbstractScanFactory):
         if params.scan.type == "tof":
             return TOFSequenceFactory.from_phil(params=params, reference=reference)
         else:  # Default to Scan for backwards compatibility
-            return ScanFactory(params=params, reference=reference)
+            return ScanFactory.from_phil(params=params, reference=reference)
 
     @staticmethod
-    def from_dict(dict: Dict, template: Dict) -> ScanBase:
+    def from_dict(dict: Dict, template: Dict = None) -> ScanBase:
         """
         Convert dictionary to a scan model
         """
@@ -387,7 +387,7 @@ class TOFSequenceFactory(AbstractScanFactory):
         sanity_check_params(params=params)
 
         if reference is None:
-            scan = TOFSequence
+            scan = TOFSequence()
         else:
             scan = reference
 
@@ -407,7 +407,7 @@ class TOFSequenceFactory(AbstractScanFactory):
         return scan
 
     @staticmethod
-    def from_dict(dict: Dict, template: Dict) -> TOFSequence:
+    def from_dict(dict: Dict, template: Dict = None) -> TOFSequence:
         """
         Convert dictionary to a scan model
         """

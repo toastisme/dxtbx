@@ -85,7 +85,7 @@ namespace dxtbx { namespace model { namespace boost_python {
   template <>
   boost::python::dict to_dict<Scan>(const Scan &obj) {
     boost::python::dict result;
-    result["__id__"] = "Scan";
+    result["__id__"] = "Rotational";
     result["image_range"] = obj.get_image_range();
     result["batch_offset"] = obj.get_batch_offset();
     result["oscillation"] = rad_as_deg(obj.get_oscillation());
@@ -606,7 +606,7 @@ namespace dxtbx { namespace model { namespace boost_python {
       .staticmethod("from_dict")
       .def_pickle(ScanPickleSuite());
 
-    class_<TOFSequence, boost::shared_ptr<TOFSequence>, bases<BeamBase> >("TOFSequence")
+    class_<TOFSequence, boost::shared_ptr<TOFSequence>, bases<ScanBase> >("TOFSequence")
       .def(init<const TOFSequence &>())
       .def("__init__",
            make_constructor(&make_tof_sequence,
