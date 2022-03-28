@@ -46,12 +46,22 @@ class _:
     def get_frame_from_wavelength(self, wavelength: float) -> float:
         x = [i + 1 for i in range(len(self.get_wavelengths()))]
         coefficients = interpolate.splrep(self.get_wavelengths(), x)
-        return interpolate.splev(wavelength, coefficients)
+        return float(interpolate.splev(wavelength, coefficients))
 
     def get_frame_from_tof(self, tof: float) -> float:
         x = [i + 1 for i in range(len(self.get_tof_in_seconds()))]
         coefficients = interpolate.splrep(self.get_tof_in_seconds(), x)
-        return interpolate.splev(tof, coefficients)
+        return float(interpolate.splev(tof, coefficients))
+
+    def get_wavelength_from_frame(self, frame: float) -> float:
+        x = [i + 1 for i in range(len(self.get_wavelengths()))]
+        coefficients = interpolate.splrep(x, self.get_wavelengths())
+        return float(interpolate.splev(frame, coefficients))
+
+    def get_tof_from_frame(self, frame: float) -> float:
+        x = [i + 1 for i in range(len(self.get_tof_in_seconds()))]
+        coefficients = interpolate.splrep(x, self.get_tof_in_seconds())
+        return float(interpolate.splev(frame, coefficients))
 
 
 class SequenceFactory:
