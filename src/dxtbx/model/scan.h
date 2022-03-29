@@ -20,6 +20,7 @@
 #include <scitbx/array_family/simple_tiny_io.h>
 #include <dxtbx/error.h>
 #include "scan_helpers.h"
+#include "scan_properties.h"
 
 namespace dxtbx { namespace model {
 
@@ -99,6 +100,13 @@ namespace dxtbx { namespace model {
       DXTBX_ASSERT(exposure_times_.size() == num_images_);
       DXTBX_ASSERT(epochs_.size() == num_images_);
       DXTBX_ASSERT(oscillation_[1] >= 0.0);
+      const scitbx::af::shared<double> oscillations(num_images_, 0.0);
+      for (std::size_t i = 0; i < num_images_; ++i) {
+        oscillations[i] = get_image_oscillation(i);
+      }
+      properties_.add("epochs", epochs);
+      properties_.add("exposure_times", exposure_times);
+      properties_.add("oscillations", oscillations);
     }
 
     /** Copy */
@@ -502,6 +510,7 @@ namespace dxtbx { namespace model {
     int batch_offset_;
     scitbx::af::shared<double> exposure_times_;
     scitbx::af::shared<double> epochs_;
+    ScanProperties properties_;
   };
 
   /** Print Scan information */
