@@ -227,6 +227,7 @@ namespace dxtbx { namespace model {
       return wavelengths_[index - image_range_[0]];
     }
 
+
     void append(const TOFSequence &rhs) {
       DXTBX_ASSERT(image_range_[1] + 1 == rhs.image_range_[0]);
       DXTBX_ASSERT(batch_offset_ == rhs.batch_offset_);

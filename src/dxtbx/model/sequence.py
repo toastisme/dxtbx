@@ -1,7 +1,9 @@
 import os
 
 import pycbf
+from scipy import interpolate
 
+import boost_adaptbx.boost.python
 import libtbx.phil
 from scitbx.array_family import flex
 
@@ -37,6 +39,29 @@ scan_phil_scope = libtbx.phil.parse(
   }
 """
 )
+
+
+@boost_adaptbx.boost.python.inject_into(TOFSequence)
+class _:
+    def get_frame_from_wavelength(self, wavelength: float) -> float:
+        x = [i + 1 for i in range(len(self.get_wavelengths()))]
+        coefficients = interpolate.splrep(self.get_wavelengths(), x)
+        return float(interpolate.splev(wavelength, coefficients))
+
+    def get_frame_from_tof(self, tof: float) -> float:
+        x = [i + 1 for i in range(len(self.get_tof_in_seconds()))]
+        coefficients = interpolate.splrep(self.get_tof_in_seconds(), x)
+        return float(interpolate.splev(tof, coefficients))
+
+    def get_wavelength_from_frame(self, frame: float) -> float:
+        x = [i + 1 for i in range(len(self.get_wavelengths()))]
+        coefficients = interpolate.splrep(x, self.get_wavelengths())
+        return float(interpolate.splev(frame, coefficients))
+
+    def get_tof_from_frame(self, frame: float) -> float:
+        x = [i + 1 for i in range(len(self.get_tof_in_seconds()))]
+        coefficients = interpolate.splrep(x, self.get_tof_in_seconds())
+        return float(interpolate.splev(frame, coefficients))
 
 
 class SequenceFactory:
