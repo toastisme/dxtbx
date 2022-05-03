@@ -483,16 +483,13 @@ class FormatISISSXD(FormatNXTOFRAW):
 
         def get_bbox(x, dx, y, dy, tof, dtof, tof_curve_coeffs):
             frame = get_tof_frame(tof, tof_curve_coeffs)
-            dframe1 = get_tof_frame(tof - dtof, tof_curve_coeffs)
-            dframe2 = get_tof_frame(tof + dtof, tof_curve_coeffs)
-            dframe = dframe2 - dframe1
             return (
                 int(x - dx),
                 int(x + dx),
                 int(y - dy),
                 int(y + dy),
-                int(frame - dframe),
-                int(frame + dframe),
+                int(frame - dtof),
+                int(frame + dtof),
             )
 
         def get_tof(row):
@@ -573,16 +570,10 @@ class FormatISISSXD(FormatNXTOFRAW):
                             if specific_panel != panel_num:
                                 continue
                         data["hkl"].append(get_hkl(line))
-                        if panel_num == 0:
-                            y = -get_x(line)
-                            x = -get_y(line)
-                            dy = get_dx(lines[count + 1])
-                            dx = get_dy(lines[count + 1])
-                        else:
-                            x = get_x(line)
-                            y = get_y(line)
-                            dx = get_dx(lines[count + 1])
-                            dy = get_dy(lines[count + 1])
+                        x = get_x(line)
+                        y = get_y(line)
+                        dx = get_dx(lines[count + 1])
+                        dy = get_dy(lines[count + 1])
 
                         tof = get_tof(line)
                         wavelength = get_pixel_wavelength_in_ang(
@@ -623,9 +614,7 @@ class FormatISISSXD(FormatNXTOFRAW):
         nrows = len(data["hkl"])
 
         unit_s0 = np.array(self._get_unit_s0())
-        use_reflection_table = (
-            dials_array_family_flex_ext.reflection_table.empty_standard(nrows)
-        )
+        use_reflection_table = dials_array_family_flex_ext.reflection_table(nrows)
         use_reflection_table["xyzobs.px.value"] = cctbx.array_family.flex.vec3_double(
             nrows
         )
