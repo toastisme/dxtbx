@@ -43,7 +43,7 @@ namespace dxtbx { namespace model { namespace boost_python {
     return ss.str();
   }
 
-  std::string tof_sequence_to_string(const TOFSequence &tof_sequence){
+  std::string tof_sequence_to_string(const TOFSequence &tof_sequence) {
     std::stringstream ss;
     ss << tof_sequence;
     return ss.str();
@@ -111,9 +111,9 @@ namespace dxtbx { namespace model { namespace boost_python {
     return result;
   }
 
-  inline scitbx::af::shared<double> get_tof_array_data(boost::python::list obj){
+  inline scitbx::af::shared<double> get_tof_array_data(boost::python::list obj) {
     scitbx::af::shared<double> result(scitbx::af::reserve(len(obj)));
-    for (std::size_t i = 0; i < len(obj); ++i){
+    for (std::size_t i = 0; i < len(obj); ++i) {
       result.push_back(boost::python::extract<double>(obj[i]));
     }
     return result;
@@ -202,7 +202,7 @@ namespace dxtbx { namespace model { namespace boost_python {
     }
     return scan;
   }
-  
+
   template <>
   TOFSequence *from_dict<TOFSequence>(boost::python::dict obj) {
     vec2<int> ir = boost::python::extract<vec2<int> >(obj["image_range"]);
@@ -211,11 +211,11 @@ namespace dxtbx { namespace model { namespace boost_python {
     std::size_t num = ir[1] - ir[0] + 1;
     TOFSequence *tof_sequence =
       new TOFSequence(ir,
-               get_tof_array_data(boost::python::extract<boost::python::list>(obj.get("tof_in_seconds", 
-               boost::python::list()))),
-               get_tof_array_data(boost::python::extract<boost::python::list>(obj.get("wavelengths", 
-               boost::python::list()))),
-               bo);
+                      get_tof_array_data(boost::python::extract<boost::python::list>(
+                        obj.get("tof_in_seconds", boost::python::list()))),
+                      get_tof_array_data(boost::python::extract<boost::python::list>(
+                        obj.get("wavelengths", boost::python::list()))),
+                      bo);
     boost::python::dict rangemap =
       boost::python::extract<boost::python::dict>(obj["valid_image_ranges"]);
     boost::python::list keys = rangemap.keys();
@@ -240,8 +240,9 @@ namespace dxtbx { namespace model { namespace boost_python {
   static Scan scan_copy(const Scan &scan) {
     return Scan(scan);
   }
-  
-  static TOFSequence tof_sequence_deepcopy(const TOFSequence &tof_sequence, boost::python::object dict) {
+
+  static TOFSequence tof_sequence_deepcopy(const TOFSequence &tof_sequence,
+                                           boost::python::object dict) {
     return TOFSequence(tof_sequence);
   }
 
@@ -271,10 +272,11 @@ namespace dxtbx { namespace model { namespace boost_python {
     return result;
   }
 
-  static TOFSequence *make_tof_sequence(vec2<int> image_range, 
-                                        const scitbx::af::shared<double> &tof_in_seconds,
-                                        const scitbx::af::shared<double> &wavelengths,
-                                        int batch_offset){
+  static TOFSequence *make_tof_sequence(
+    vec2<int> image_range,
+    const scitbx::af::shared<double> &tof_in_seconds,
+    const scitbx::af::shared<double> &wavelengths,
+    int batch_offset) {
     return new TOFSequence(image_range, tof_in_seconds, wavelengths, batch_offset);
   }
 
@@ -450,12 +452,14 @@ namespace dxtbx { namespace model { namespace boost_python {
                 new_epochs,
                 scan.get_batch_offset());
   }
-  
-  static TOFSequence tof_sequence_getitem_single(const TOFSequence &tof_sequence, int index) {
+
+  static TOFSequence tof_sequence_getitem_single(const TOFSequence &tof_sequence,
+                                                 int index) {
     return tof_sequence[index];
   }
 
-  static TOFSequence tof_sequence_getitem_slice(const TOFSequence &tof_sequence, const slice index) {
+  static TOFSequence tof_sequence_getitem_slice(const TOFSequence &tof_sequence,
+                                                const slice index) {
     // Ensure no step
     DXTBX_ASSERT(index.step() == object());
 
@@ -493,10 +497,9 @@ namespace dxtbx { namespace model { namespace boost_python {
     }
 
     return TOFSequence(vec2<int>(first_image_index, last_image_index),
-      new_tof_in_seconds,
-      new_wavelengths,
-      tof_sequence.get_batch_offset());
-
+                       new_tof_in_seconds,
+                       new_wavelengths,
+                       tof_sequence.get_batch_offset());
   }
 
   void scan_swap(Scan &lhs, Scan &rhs) {
@@ -530,34 +533,34 @@ namespace dxtbx { namespace model { namespace boost_python {
       .def("get_valid_image_ranges", get_valid_image_ranges)
       .def("set_valid_image_ranges", set_valid_image_ranges);
 
-
     class_<TOFSequence, boost::shared_ptr<TOFSequence>, bases<Sequence> >("TOFSequence")
       .def(init<const TOFSequence &>())
       .def("__init__",
-            make_constructor(&make_tof_sequence,
-                             default_call_policies(),
-                             (arg("image_range"),
+           make_constructor(&make_tof_sequence,
+                            default_call_policies(),
+                            (arg("image_range"),
                              arg("tof_in_seconds"),
                              arg("wavelengths"),
                              arg("batch_offset") = 0)))
-            .def("get_tof_in_seconds", &TOFSequence::get_tof_in_seconds)
-            .def("get_wavelengths", &TOFSequence::get_wavelengths)
-            .def("__deepcopy__", &tof_sequence_deepcopy)
-            .def("__copy__", &tof_sequence_copy)
-            .def("to_dict", &to_dict<TOFSequence>)
-            .def("from_dict", &from_dict<TOFSequence>, return_value_policy<manage_new_object>())
-            .staticmethod("from_dict")
-            .def(self == self)
-            .def(self != self)
-            .def(self += self)
-            .def(self + self)
-            .def("__getitem__", &tof_sequence_getitem_single)
-            .def("__getitem__", &tof_sequence_getitem_slice)
-            .def("swap", &tof_sequence_swap)
-            .def("__len__", &TOFSequence::get_num_tof_bins)
-            .def("__str__", &tof_sequence_to_string)
-            .def_pickle(TOFSequencePickleSuite());
-
+      .def("get_tof_in_seconds", &TOFSequence::get_tof_in_seconds)
+      .def("get_wavelengths", &TOFSequence::get_wavelengths)
+      .def("is_still", &TOFSequence::is_still)
+      .def("__deepcopy__", &tof_sequence_deepcopy)
+      .def("__copy__", &tof_sequence_copy)
+      .def("to_dict", &to_dict<TOFSequence>)
+      .def(
+        "from_dict", &from_dict<TOFSequence>, return_value_policy<manage_new_object>())
+      .staticmethod("from_dict")
+      .def(self == self)
+      .def(self != self)
+      .def(self += self)
+      .def(self + self)
+      .def("__getitem__", &tof_sequence_getitem_single)
+      .def("__getitem__", &tof_sequence_getitem_slice)
+      .def("swap", &tof_sequence_swap)
+      .def("__len__", &TOFSequence::get_num_tof_bins)
+      .def("__str__", &tof_sequence_to_string)
+      .def_pickle(TOFSequencePickleSuite());
 
     // Export Scan : Sequence
     class_<Scan, boost::shared_ptr<Scan>, bases<Sequence> >("Scan")
