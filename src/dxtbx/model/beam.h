@@ -442,6 +442,15 @@ namespace dxtbx { namespace model {
     return os;
   }
 
+  /** Print beam information */
+  inline std::ostream &operator<<(std::ostream &os, const PolyBeam &b) {
+    os << "PolyBeam:\n";
+    os << "    sample to moderator distance: " << b.get_sample_to_moderator_distance() << "\n";
+    os << "    sample to source direction : "
+       << b.get_sample_to_source_direction().const_ref() << "\n";
+    return os;
+  }
+
 }}  // namespace dxtbx::model
 
 #endif  // DXTBX_MODEL_BEAM_H
