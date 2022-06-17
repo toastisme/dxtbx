@@ -362,7 +362,6 @@ public:
    * @param The sequence model
    */
   void set_sequence(const boost::python::object &sequence, std::size_t index) {
-    std::cout << "TEST set_sequence " << sequences_.size() << " " << index << "\n";
     DXTBX_ASSERT(index < sequences_.size());
     sequences_[index] = sequence;
   }
@@ -1002,7 +1001,7 @@ public:
     DXTBX_ASSERT(sequence == boost::python::api::object()
                  || sequence.attr("get_num_images")() == 1);
     DXTBX_ASSERT(index < indices_.size());
-    data_.set_sequence(sequence, indices_[index]);
+    data_.set_sequence(sequence, index);
   }
 
   /**
@@ -1242,7 +1241,6 @@ public:
         sequence_(sequence) {
     // Check the sequence is the same length and number of images
     DXTBX_ASSERT(sequence != boost::python::api::object());
-    std::cout << "TEST using ImageSequence constructor without indices\n";
     if (data.size() > 1) {
       if (data.size() != sequence.attr("get_num_images")()) {
         throw DXTBX_ERROR("Sequence size is not compatible with number of images");
@@ -1280,11 +1278,6 @@ public:
         sequence_(sequence) {
     // Check the sequence is the same length as number of indices
     DXTBX_ASSERT(sequence != boost::python::api::object());
-
-    std::cout << "TEST using ImageSequence constructor with indices\n";
-    std::cout << "TEST indices has size " << indices.size() << "\n";
-    std::cout << "TEST imageset size " << ImageSet::size() << "\n";
-    std::cout << "TEST size " << size() << "\n";
 
     // Check indices are sequential
     if (indices.size() > 0) {
