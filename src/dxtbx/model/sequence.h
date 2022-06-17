@@ -224,6 +224,8 @@ namespace dxtbx { namespace model {
     }
 
     void append(const TOFSequence &rhs) {
+      std::cout << "TEST sequence append " << image_range_[1] << " "
+                << rhs.image_range_[0] << "\n";
       DXTBX_ASSERT(image_range_[1] + 1 == rhs.image_range_[0]);
       DXTBX_ASSERT(batch_offset_ == rhs.batch_offset_);
       image_range_[1] = rhs.image_range_[1];

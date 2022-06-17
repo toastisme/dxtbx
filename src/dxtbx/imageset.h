@@ -362,6 +362,7 @@ public:
    * @param The sequence model
    */
   void set_sequence(const boost::python::object &sequence, std::size_t index) {
+    std::cout << "TEST set_sequence " << sequences_.size() << " " << index << "\n";
     DXTBX_ASSERT(index < sequences_.size());
     sequences_[index] = sequence;
   }
@@ -1241,6 +1242,7 @@ public:
         sequence_(sequence) {
     // Check the sequence is the same length and number of images
     DXTBX_ASSERT(sequence != boost::python::api::object());
+    std::cout << "TEST using ImageSequence constructor without indices\n";
     if (data.size() > 1) {
       if (data.size() != sequence.attr("get_num_images")()) {
         throw DXTBX_ERROR("Sequence size is not compatible with number of images");
@@ -1278,6 +1280,11 @@ public:
         sequence_(sequence) {
     // Check the sequence is the same length as number of indices
     DXTBX_ASSERT(sequence != boost::python::api::object());
+
+    std::cout << "TEST using ImageSequence constructor with indices\n";
+    std::cout << "TEST indices has size " << indices.size() << "\n";
+    std::cout << "TEST imageset size " << ImageSet::size() << "\n";
+    std::cout << "TEST size " << size() << "\n";
 
     // Check indices are sequential
     if (indices.size() > 0) {
@@ -1499,9 +1506,9 @@ public:
     ImageSetData _partial_data = data_.partial_data(reader, first, last);
 
     // Construct a partial sequence
-    boost::python::object partial_sequence = ImageSet::get_sequence_for_image(first);
+    boost::python::object partial_sequence = ImageSet::get_sequence_for_image(0);
     DXTBX_ASSERT(partial_sequence != boost::python::api::object());
-    for (std::size_t i = first + 1; i < last; ++i) {
+    for (std::size_t i = 1; i < last - first; ++i) {
       boost::python::object sequence = ImageSet::get_sequence_for_image(i);
       DXTBX_ASSERT(sequence != boost::python::api::object());
       partial_sequence += sequence;
