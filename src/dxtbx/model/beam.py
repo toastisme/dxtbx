@@ -56,6 +56,7 @@ beam_phil_scope = libtbx.phil.parse(
         .type = float
         .help = "Override the flux"
         .short_caption = "flux"
+        
     sample_to_moderator_distance = None
         .type = float
         .help = "Override sample to moderator distance"
@@ -442,13 +443,91 @@ class MonoBeamFactory(BeamFactoryBase):
             if str(e).split()[-1] != "CBF_NOTFOUND":
                 raise
             flux = None
-
+            
         return MonoBeamFactory.make_polarized_beam(
             sample_to_source=direction,
             wavelength=wavelength,
             polarization=polar_plane_normal,
             polarization_fraction=polar_fraction,
             flux=flux,
+        )
+
+
+class PolyBeamFactory(BeamFactoryBase):
+    @staticmethod
+    def from_phil(params, reference: Beam = None) -> Beam:
+        def check_for_required_params(params, reference):
+            if params.beam.direction is None and reference is None:
+                raise RuntimeError("Cannot create PolyBeam: direction not set")
+            if params.beam.sample_to_moderator_distance is None and reference is None:
+                raise RuntimeError(
+                    "Cannot create ToF beam: sample_to_moderator_distance not set"
+                )
+            if params.beam.wavelength_range is None and reference is None:
+                raise RuntimeError("Cannot create ToF beam: wavelength_range not set")
+
+        check_for_required_params(params=params, reference=reference)
+        if reference is None:
+            beam = PolyBeam()
+        else:
+            beam = reference
+
+        if params.beam.direction is not None:
+            beam.set_sample_to_source_direction(params.beam.direction)
+        if params.sample_to_moderator_distance is not None:
+            beam.set_sample_to_moderator_distance(
+                params.beam.sample_to_moderator_distance
+            )
+        if params.wavelength_range is not None:
+            beam.set_wavelength_range(params.beam.wavelength_range)
+
+        return beam
+
+    @staticmethod
+    def from_dict(dict: Dict, template: Dict = None) -> Beam:
+        def check_for_required_keys(dict, required_keys):
+            for i in required_keys:
+                if i not in dict:
+                    raise RuntimeError(f"Cannot create PolyBeam: {i} not in dictionary")
+
+        required_keys = [
+            "direction",
+            "sample_to_moderator_distance",
+            "wavelength_range",
+        ]
+        check_for_required_keys(dict=dict, required_keys=required_keys)
+        if dict is None and template is None:
+            return None
+
+        # Use the template as the initial dictionary,
+        # and update/replace fields with dict
+        beam_dict = template.copy() if template else {}
+        beam_dict.update(dict)
+
+        return PolyBeam.from_dict(beam_dict)
+
+    @staticmethod
+    def make_beam(**kwargs) -> Beam:
+
+        sample_to_source_direction = kwargs.get("sample_to_source_direction")
+        if not sample_to_source_direction:
+            raise RuntimeError(
+                "Cannot create PolyBeam: sample_to_source_direction not set"
+            )
+
+        sample_to_moderator_distance = kwargs.get("sample_to_moderator_distance")
+        if not sample_to_moderator_distance:
+            raise RuntimeError(
+                "Cannot create PolyBeam: sample_to_moderator_distance not set"
+            )
+        wavelength_range = kwargs.get("wavelength_range")
+        if not wavelength_range:
+            raise RuntimeError("Cannot create PolyBeam: wavelength_range not set")
+
+        return PolyBeam(
+            tuple(map(float, sample_to_source_direction)),
+            float(sample_to_moderator_distance),
+            tuple(map(float, wavelength_range)),
         )
 
 

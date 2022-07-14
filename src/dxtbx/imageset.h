@@ -1126,6 +1126,7 @@ protected:
     double_raw_data_cache_.image = image;
     return image;
   }
+
 };
 
 /**
@@ -1213,6 +1214,7 @@ public:
 protected:
   int2 grid_size_;
 };
+
 
 /**
  * A class to represent a sequence of data
@@ -1474,7 +1476,7 @@ public:
       DXTBX_ASSERT(sequence != boost::python::api::object());
       complete_sequence += sequence;
     }
-
+   
     // Construct a sequence
     ImageSequence result(
       ImageSet::data_, get_beam(), get_detector(), get_goniometer(), complete_sequence);

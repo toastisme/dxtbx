@@ -191,6 +191,10 @@ class _:
     def is_sequence(imageset):
         return isinstance(imageset, ImageSequence)
 
+    @staticmethod
+    def is_sequence(imageset):
+        return isinstance(imageset, ImageSequence)
+
 
 class ImageSetLazy(ImageSet):
     """

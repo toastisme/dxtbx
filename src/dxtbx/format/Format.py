@@ -12,6 +12,7 @@ from __future__ import annotations
 import bz2
 import functools
 import os
+
 from io import IOBase
 from typing import Callable, ClassVar
 
@@ -633,7 +634,7 @@ class Format:
         caching transparently if possible."""
         filename_str = os.fspath(filename)
         assert isinstance(filename_str, str)
-
+        
         fh_func: Callable[..., IOBase]
         if filename_str.endswith(".bz2"):
             fh_func = functools.partial(bz2.BZ2File, filename, mode=mode)

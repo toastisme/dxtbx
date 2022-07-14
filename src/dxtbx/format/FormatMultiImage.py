@@ -262,7 +262,6 @@ class FormatMultiImage(Format):
             return iset
 
         def create_imageset_lazy(cls, filenames, single_file_indices, format_kwargs):
-
             format_instance = None
             num_images = get_num_images(single_file_indices, format_instance)
             reader = get_reader(cls, filenames, num_images, **format_kwargs)

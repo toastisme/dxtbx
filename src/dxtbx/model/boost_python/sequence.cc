@@ -243,6 +243,7 @@ namespace dxtbx { namespace model { namespace boost_python {
 
   static TOFSequence tof_sequence_deepcopy(const TOFSequence &tof_sequence,
                                            boost::python::object dict) {
+
     return TOFSequence(tof_sequence);
   }
 
@@ -460,6 +461,7 @@ namespace dxtbx { namespace model { namespace boost_python {
 
   static TOFSequence tof_sequence_getitem_slice(const TOFSequence &tof_sequence,
                                                 const slice index) {
+
     // Ensure no step
     DXTBX_ASSERT(index.step() == object());
 

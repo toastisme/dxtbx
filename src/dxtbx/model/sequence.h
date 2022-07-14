@@ -332,6 +332,7 @@ namespace dxtbx { namespace model {
           exposure_times_(exposure_times),
           epochs_(epochs) {
       DXTBX_ASSERT(num_images_ >= 0);
+
       if (exposure_times_.size() == 1 && num_images_ > 1) {
         // assume same exposure time for all images - there is
         // probably a better way of coding this...
