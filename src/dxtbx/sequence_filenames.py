@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import re
 from collections import defaultdict
@@ -162,7 +164,7 @@ def find_matching_images(image_name):
 
         matching_images = []
 
-        for j in range(0, 10 ** len_digits):
+        for j in range(0, 10**len_digits):
             if template_str % j in files_in_directory:
                 matching_images.append(os.path.join(directory, template_str % j))
 
@@ -179,15 +181,12 @@ def replace_template_format_with_hash(match):
 
 def template_string_to_glob_expr(template):
     """Convert the template to a glob expression."""
-    pfx = template.split("#")[0]
-    sfx = template.split("#")[-1]
-    return "%s%s%s" % (pfx, "[0-9]" * template.count("#"), sfx)
+    return template.replace("#", "[0-9]")
 
 
 def template_string_number_index(template):
-    """Get the number idex of the template."""
-    pfx = template.split("#")[0]
-    return len(pfx), len(pfx) + template.count("#")
+    """Get the index slice ends for `##...#` in the template."""
+    return template.find("#"), template.rfind("#") + 1
 
 
 def locate_files_matching_template_string(template):
@@ -210,8 +209,11 @@ def template_image_range(template):
     index = slice(*template_string_number_index(template))
 
     # Get the first and last indices
-    first = int(filenames[0][index])
-    last = int(filenames[-1][index])
+    if "#" in template:
+        first = int(filenames[0][index])
+        last = int(filenames[-1][index])
+    else:  # template is one file
+        first, last = 0, 0
 
     # Return the image range
     return (first, last)

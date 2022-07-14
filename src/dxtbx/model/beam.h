@@ -31,7 +31,6 @@ namespace dxtbx { namespace model {
   public:
     virtual ~Beam() {}
 
-    // Get the direction
     virtual vec3<double> get_sample_to_source_direction() const = 0;
     // Set the direction.
     virtual void set_sample_to_source_direction(vec3<double> direction) = 0;
@@ -128,8 +127,7 @@ namespace dxtbx { namespace model {
           transmission_(1.0) {}
 
     /**
-     * Initialise all the beam parameters.
-     * @param direction The beam direction vector.
+     * @param s0 The incident beam vector.
      */
     MonoBeam(vec3<double> s0)
         : divergence_(0.0),
@@ -144,10 +142,8 @@ namespace dxtbx { namespace model {
     }
 
     /**
-     * Initialise all the beam parameters. Normalize the direction vector
-     * and give it the length of 1.0 / wavelength
+     * @param direction The beam direction vector from sample to source
      * @param wavelength The wavelength of the beam
-     * @param direction The beam direction vector.
      */
     MonoBeam(vec3<double> direction, double wavelength)
         : wavelength_(wavelength),
@@ -162,8 +158,9 @@ namespace dxtbx { namespace model {
     }
 
     /**
-     * Initialise all the beam parameters.
-     * @param direction The beam direction vector.
+     * @param s0 The incident beam vector.
+     * @param divergence The beam divergence
+     * @param sigma_divergence The standard deviation of the beam divergence
      */
     MonoBeam(vec3<double> s0, double divergence, double sigma_divergence)
         : divergence_(divergence),
@@ -178,10 +175,10 @@ namespace dxtbx { namespace model {
     }
 
     /**
-     * Initialise all the beam parameters. Normalize the direction vector
-     * and give it the length of 1.0 / wavelength
+     * @param direction The beam direction vector from sample to source
      * @param wavelength The wavelength of the beam
-     * @param direction The beam direction vector.
+     * @param divergence The beam divergence
+     * @param sigma_divergence The standard deviation of the beam divergence
      */
     MonoBeam(vec3<double> direction,
          double wavelength,
@@ -211,8 +208,8 @@ namespace dxtbx { namespace model {
           sigma_divergence_(sigma_divergence),
           polarization_normal_(polarization_normal),
           polarization_fraction_(polarization_fraction),
-          flux_(0),
-          transmission_(1.0) {
+          flux_(flux),
+          transmission_(transmission) {
       DXTBX_ASSERT(direction.length() > 0);
       direction_ = direction.normalize();
     }
@@ -220,18 +217,15 @@ namespace dxtbx { namespace model {
     /** Virtual destructor */
     virtual ~MonoBeam() {}
 
-    /** Get the direction */
     vec3<double> get_sample_to_source_direction() const {
       return direction_;
     }
 
-    /** Get the wavelength */
     double get_wavelength() const {
       DXTBX_ASSERT(wavelength_ > 0.0);
       return wavelength_;
     }
 
-    /** Get the beam divergence */
     double get_divergence() const {
       return divergence_;
     }
@@ -247,36 +241,30 @@ namespace dxtbx { namespace model {
       direction_ = direction.normalize();
     }
 
-    /** Set the wavelength */
     void set_wavelength(double wavelength) {
       wavelength_ = wavelength;
     }
 
-    /** Get the wave vector in units of inverse angstroms */
     vec3<double> get_s0() const {
       DXTBX_ASSERT(wavelength_ > 0.0);
       return -direction_ * 1.0 / wavelength_;
     }
 
-    /** Set the direction and wavelength from s0 */
     void set_s0(vec3<double> s0) {
       DXTBX_ASSERT(s0.length() > 0);
       direction_ = -s0.normalize();
       wavelength_ = 1.0 / s0.length();
     }
 
-    /** Get the wave vector from source to sample with unit length */
     vec3<double> get_unit_s0() const {
       return -direction_;
     }
 
-    /** Set the direction using the unit_s0 vector */
     void set_unit_s0(vec3<double> unit_s0) {
       DXTBX_ASSERT(unit_s0.length() > 0);
       direction_ = -(unit_s0.normalize());
     }
 
-    /** Set the beam divergence */
     void set_divergence(double divergence) {
       divergence_ = divergence;
     }
@@ -286,86 +274,55 @@ namespace dxtbx { namespace model {
       sigma_divergence_ = sigma_divergence;
     }
 
-    /** Get the polarization */
     vec3<double> get_polarization_normal() const {
       return polarization_normal_;
     }
 
-    /** Get the polarization fraction */
     double get_polarization_fraction() const {
       return polarization_fraction_;
     }
 
-    /** Set the polarization plane */
     void set_polarization_normal(vec3<double> polarization_normal) {
       polarization_normal_ = polarization_normal;
     }
 
-    /** Set the polarization fraction */
     void set_polarization_fraction(double polarization_fraction) {
       polarization_fraction_ = polarization_fraction;
     }
 
-    /**
-     * Set the flux
-     */
     void set_flux(double flux) {
       flux_ = flux;
     }
 
-    /**
-     * Set the transmission
-     */
     void set_transmission(double transmission) {
       transmission_ = transmission;
     }
 
-    /**
-     * Get the flux
-     */
     double get_flux() const {
       return flux_;
     }
 
-    /**
-     * Get the transmission
-     */
     double get_transmission() const {
       return transmission_;
     }
 
-    /**
-     * @returns the number of scan points
-     */
     std::size_t get_num_scan_points() const {
       return s0_at_scan_points_.size();
     }
 
-    /**
-     * Set the s0 vector at scan points
-     */
     void set_s0_at_scan_points(const scitbx::af::const_ref<vec3<double> > &s0) {
       s0_at_scan_points_ = scitbx::af::shared<vec3<double> >(s0.begin(), s0.end());
     }
 
-    /**
-     * Get the s0 vector at scan points
-     */
     scitbx::af::shared<vec3<double> > get_s0_at_scan_points() const {
       return s0_at_scan_points_;
     }
 
-    /**
-     * Get the s0 vector at the scan point
-     */
     vec3<double> get_s0_at_scan_point(std::size_t index) const {
       DXTBX_ASSERT(index < s0_at_scan_points_.size());
       return s0_at_scan_points_[index];
     }
 
-    /**
-     * Reset the scan points
-     */
     void reset_scan_points() {
       s0_at_scan_points_.clear();
     }
@@ -450,10 +407,7 @@ namespace dxtbx { namespace model {
       return !(*this == rhs);
     }
 
-    /** Rotate the beam about an axis */
     void rotate_around_origin(vec3<double> axis, double angle) {
-      const double EPS = 1e-7;
-      DXTBX_ASSERT(std::abs(direction_ * polarization_normal_) < EPS);
       direction_ = direction_.rotate_around_origin(axis, angle);
       polarization_normal_ = polarization_normal_.rotate_around_origin(axis, angle);
     }
@@ -483,6 +437,17 @@ namespace dxtbx { namespace model {
     os << "    polarization normal: " << b.get_polarization_normal().const_ref()
        << "\n";
     os << "    polarization fraction: " << b.get_polarization_fraction() << "\n";
+    os << "    flux: " << b.get_flux() << "\n";
+    os << "    transmission: " << b.get_transmission() << "\n";
+    return os;
+  }
+
+  /** Print beam information */
+  inline std::ostream &operator<<(std::ostream &os, const PolyBeam &b) {
+    os << "PolyBeam:\n";
+    os << "    sample to moderator distance: " << b.get_sample_to_moderator_distance() << "\n";
+    os << "    sample to source direction : "
+       << b.get_sample_to_source_direction().const_ref() << "\n";
     return os;
   }
 

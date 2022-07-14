@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from scitbx.array_family import flex
 
 from dxtbx.model import Detector, Goniometer, MonoBeam, Scan

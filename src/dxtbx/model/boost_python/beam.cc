@@ -29,6 +29,12 @@ namespace dxtbx { namespace model { namespace boost_python {
     return ss.str();
   }
 
+  std::string polybeam_to_string(const PolyBeam &beam) {
+    std::stringstream ss;
+    ss << beam;
+    return ss.str();
+  }
+
   struct BeamPickleSuite : boost::python::pickle_suite {
     static boost::python::tuple getinitargs(const MonoBeam &obj) {
       return boost::python::make_tuple(obj.get_sample_to_source_direction(),
@@ -295,6 +301,7 @@ namespace dxtbx { namespace model { namespace boost_python {
       .def("set_unit_s0", &PolyBeam::set_unit_s0)
       .def("get_wavelength_range", &PolyBeam::get_wavelength_range)
       .def("set_wavelength_range", &PolyBeam::set_wavelength_range)
+      .def("__str__", &polybeam_to_string)
       .def("to_dict", &to_dict<PolyBeam>)
       .def("from_dict", &from_dict<PolyBeam>, return_value_policy<manage_new_object>())
       .def_pickle(PolyBeamPickleSuite());

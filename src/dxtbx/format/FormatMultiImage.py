@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import os
 
@@ -60,8 +62,8 @@ class Reader:
     def __len__(self):
         return self._num_images
 
-    def copy(self, filenames, indices=None):
-        return Reader(self.format_class, filenames, indices)
+    def copy(self, filenames, num_images=None):
+        return Reader(self.format_class, filenames, num_images, **self.kwargs)
 
     def identifiers(self):
         return ["%s-%d" % (self._filename, index) for index in range(len(self))]
@@ -260,7 +262,6 @@ class FormatMultiImage(Format):
             return iset
 
         def create_imageset_lazy(cls, filenames, single_file_indices, format_kwargs):
-
             format_instance = None
             num_images = get_num_images(single_file_indices, format_instance)
             reader = get_reader(cls, filenames, num_images, **format_kwargs)

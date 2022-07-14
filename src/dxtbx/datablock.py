@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 import json
 import logging
@@ -30,7 +32,7 @@ class DataBlock:
 
         warnings.warn(
             "Datablocks are deprecated; please use ExperimentLists instead",
-            DeprecationWarning,
+            UserWarning,
             stacklevel=2,
         )
 
@@ -86,8 +88,6 @@ class DataBlock:
             self._format_class == rhs._format_class
             and self._imagesets == rhs._imagesets
         )
-
-    __hash__ = None  # datablock objects are mutable and therefore unhashable
 
     def __ne__(self, rhs):
         """Check if two blocks are not equal."""

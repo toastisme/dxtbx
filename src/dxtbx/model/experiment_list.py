@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 import copy
 import errno
@@ -7,6 +9,7 @@ import logging
 import operator
 import os
 import pickle
+from typing import Any, Callable, Generator, Iterable
 
 import pkg_resources
 
@@ -47,21 +50,6 @@ from dxtbx.sequence_filenames import (
 from dxtbx.serialize import xds
 from dxtbx.serialize.filename import resolve_path
 from dxtbx.util import get_url_scheme
-
-try:
-    from typing import (
-        Any,
-        Callable,
-        Dict,
-        Generator,
-        Iterable,
-        List,
-        Optional,
-        Tuple,
-        Type,
-    )
-except ImportError:
-    pass
 
 __all__ = [
     "BeamComparison",
@@ -197,8 +185,9 @@ class ExperimentListDict:
 
         return mlist
 
-    def _load_pickle_path(self, imageset_data, param):
-        # type: (Dict, str) -> Tuple[Optional[str], Any]
+    def _load_pickle_path(
+        self, imageset_data: dict, param: str
+    ) -> tuple[str | None, Any]:
         """
         Read a filename from an imageset dict and load if required.
 
@@ -585,7 +574,7 @@ class ExperimentListFactory:
         scan_tolerance=None,
         format_kwargs=None,
         load_models=True,
-    ):
+    ) -> ExperimentList:
         """Create a list of data blocks from a list of directory or file names."""
 
         # Process each file given by this path list
@@ -656,8 +645,9 @@ class ExperimentListFactory:
                 compare_goniometer=compare_goniometer,
             )
             records = _merge_scans(records, scan_tolerance=scan_tolerance)
-            imagesets = _convert_to_imagesets(records, format_class, format_kwargs)
-            imagesets = list(imagesets)
+            imagesets = list(
+                _convert_to_imagesets(records, format_class, format_kwargs)
+            )
 
             # Validate this datablock and store it
             assert imagesets, "Datablock got no imagesets?"
@@ -910,25 +900,31 @@ class ExperimentListFactory:
                 )
             else:
                 index = slice(*template_string_number_index(template))
+
                 image_range = kwargs.get("image_range")
                 if image_range:
                     first, last = image_range
                 else:
-                    first = int(filenames[0][index])
-                    last = int(filenames[-1][index])
+                    first, last = template_image_range(template)
 
-                # Check all images in range are present - if allowed
                 if not kwargs.get("allow_incomplete_sequences", False):
-                    all_numbers = {int(f[index]) for f in filenames}
-                    missing = set(range(first, last + 1)) - all_numbers
-                    if missing:
-                        raise ValueError(
-                            "Missing image{} {} from imageset ({}-{})".format(
-                                "s" if len(missing) > 1 else "",
-                                ", ".join(str(x) for x in sorted(missing)),
-                                first,
-                                last,
+                    if "#" in template:
+                        # Check all images in range are present - if allowed
+                        all_numbers = {int(f[index]) for f in filenames}
+                        missing = set(range(first, last + 1)) - all_numbers
+                        if missing:
+                            raise ValueError(
+                                "Missing image{} {} from imageset ({}-{})".format(
+                                    "s" if len(missing) > 1 else "",
+                                    ", ".join(str(x) for x in sorted(missing)),
+                                    first,
+                                    last,
+                                )
                             )
+                    else:
+                        print(
+                            "Warning: Using only one template file: %s. \n "
+                            "`allow_incomplete_sequence` has no effect" % template
                         )
 
                 # Read the image
@@ -970,13 +966,13 @@ class ImageMetadataRecord:
 
     def __init__(
         self,
-        beam=None,
-        detector=None,
-        goniometer=None,
-        scan=None,
-        template=None,
-        filename=None,
-        index=None,
+        beam: dxtbx.model.Beam | None = None,
+        detector: dxtbx.model.Detector | None = None,
+        goniometer: dxtbx.model.Goniometer | None = None,
+        scan: dxtbx.model.Scan | None = None,
+        template: str | None = None,
+        filename: str | None = None,
+        index: int | None = None,
     ):
         # type: (dxtbx.model.MonoBeam, dxtbx.model.Detector, dxtbx.model.Goniometer, dxtbx.model.sequence, str, str, int)
         """
@@ -1004,12 +1000,11 @@ class ImageMetadataRecord:
 
     def merge_metadata_from(
         self,
-        other_record,
-        compare_beam=operator.__eq__,
-        compare_detector=operator.__eq__,
-        compare_goniometer=operator.__eq__,
-    ):
-        # type: (ImageMetadataRecord, Callable, Callable, Callable) -> bool
+        other_record: ImageMetadataRecord,
+        compare_beam: Callable = operator.__eq__,
+        compare_detector: Callable = operator.__eq__,
+        compare_goniometer: Callable = operator.__eq__,
+    ) -> bool:
         """
         Compare two record objects and merge equivalent data.
 
@@ -1054,8 +1049,7 @@ class ImageMetadataRecord:
         return record_altered
 
     @classmethod
-    def from_format(cls, fmt):
-        # type: (Format) -> Any
+    def from_format(cls, fmt: Format) -> Any:
         """
         Read metadata information from a Format instance.
 
@@ -1150,13 +1144,14 @@ def _iterate_with_previous(iterable):
         previous = val
 
 
-def _groupby_template_is_none(records):
-    # type: (Iterable[ImageMetadataRecord]) -> Generator[List[ImageMetadataRecord]]
+def _groupby_template_is_none(
+    records: Iterable[ImageMetadataRecord],
+) -> Generator[list[ImageMetadataRecord], None, None]:
     """Specialization of groupby that groups records by format=None"""
     for _, group in itertools.groupby(
         enumerate(records), key=lambda x: -1 if x[1].template is None else x[0]
     ):
-        yield list(x[1] for x in group)
+        yield [x[1] for x in group]
 
 
 def _openingpathiterator(pathnames: Iterable[str]):
@@ -1207,9 +1202,11 @@ def _openingpathiterator(pathnames: Iterable[str]):
 
 
 def _merge_model_metadata(
-    records, compare_beam=None, compare_detector=None, compare_goniometer=None
+    records: Iterable[ImageMetadataRecord],
+    compare_beam: Callable | None = None,
+    compare_detector: Callable | None = None,
+    compare_goniometer: Callable | None = None,
 ):
-    # type: (Iterable[ImageMetadataRecord], Callable, Callable, Callable)
     """
     Merge metadata between consecutive record objects.
 
@@ -1233,8 +1230,9 @@ def _merge_model_metadata(
         )
 
 
-def _merge_scans(records, scan_tolerance=None):
-    # type: (Iterable[ImageMetadataRecord], float) -> List[ImageMetadataRecord]
+def _merge_scans(
+    records: Iterable[ImageMetadataRecord], scan_tolerance: float | None = None
+) -> list[ImageMetadataRecord]:
     """
     Merge consecutive scan records with identical metadata.
 
@@ -1294,8 +1292,11 @@ def _merge_scans(records, scan_tolerance=None):
     return merged_records
 
 
-def _convert_to_imagesets(records, format_class, format_kwargs=None):
-    # type: (Iterable[ImageMetadataRecord], Type[dxtbx.format.Format], Dict) -> Generator[dxtbx.imageset.ImageSet]
+def _convert_to_imagesets(
+    records: Iterable[ImageMetadataRecord],
+    format_class: type[Format],
+    format_kwargs: dict | None = None,
+) -> Generator[dxtbx.imageset.ImageSet, None, None]:
     """
     Convert records into imagesets.
 
@@ -1328,8 +1329,11 @@ def _convert_to_imagesets(records, format_class, format_kwargs=None):
             yield _create_imageset(setgroup, format_class, format_kwargs)
 
 
-def _create_imageset(records, format_class, format_kwargs=None):
-    # type: (Iterable[ImageMetadataRecord], Type[dxtbx.format.Format], Dict) -> dxtbx.imageset.ImageSet
+def _create_imageset(
+    records: Iterable[ImageMetadataRecord],
+    format_class: type[Format],
+    format_kwargs: dict | None = None,
+) -> dxtbx.imageset.ImageSet:
     """
     Create an ImageSet object from a set of single-image records.
 
@@ -1345,10 +1349,13 @@ def _create_imageset(records, format_class, format_kwargs=None):
     records = list(records)
     # Nothing here should have been assigned a template parameter
     assert all(x.template is None for x in records)
+    # Everything should have a filename
+    assert all(x.filename for x in records)
     # Extract the filenames from the records
     filenames = [
         x.filename if get_url_scheme(x.filename) else os.path.abspath(x.filename)
         for x in records
+        if x.filename
     ]
     # Create the imageset
     imageset = dxtbx.imageset.ImageSetFactory.make_imageset(
