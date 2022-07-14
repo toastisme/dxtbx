@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, print_function
+from __future__ import annotations
 
 from sys import argv
 
@@ -168,7 +168,7 @@ class FormatISISSXD(FormatNXTOFRAW):
 
     def _get_time_channels_in_seconds(self):
         bins = self._get_time_channel_bins()
-        return [(bins[i] + bins[i + 1]) * 0.5 * 10 ** -6 for i in range(len(bins) - 1)]
+        return [(bins[i] + bins[i + 1]) * 0.5 * 10**-6 for i in range(len(bins) - 1)]
 
     def _get_time_channels_in_usec(self):
         bins = self._get_time_channel_bins()
@@ -182,17 +182,17 @@ class FormatISISSXD(FormatNXTOFRAW):
 
     def get_wavelength_channels_in_ang(self):
         time_channels = self._get_time_channels_in_seconds()
-        L = self._get_sample_to_moderator_distance() * 10 ** -3
+        L = self._get_sample_to_moderator_distance() * 10**-3
         return [self.get_tof_wavelength_in_ang(L, i) for i in time_channels]
 
     def get_wavelength_channels(self):
         time_channels = self._get_time_channels_in_seconds()
-        L = self._get_sample_to_moderator_distance() * 10 ** -3
+        L = self._get_sample_to_moderator_distance() * 10**-3
         return [self.get_tof_wavelength(L, i) for i in time_channels]
 
     def get_wavelength_channels_in_A(self):
         wavelengths = self.get_wavelength_channels()
-        return [i * 10 ** 10 for i in wavelengths]
+        return [i * 10**10 for i in wavelengths]
 
     def get_duration_in_uA(self):
         return self.nxs_file["raw_data_1"]["collection_time"][0]
@@ -252,9 +252,22 @@ class FormatISISSXD(FormatNXTOFRAW):
     def _get_panel_trusted_range(self):
         return (-1, 100000)
 
+    def _panel_0_params(self):
+        if self._panel_0_flipped():
+            return {
+                "slow_axis": (0.793, 0.0, 0.609),
+                "fast_axis": (0.0, -1.0, 0.0),
+                "origin": (60.81, 96.0, -236.946),
+            }
+        return {
+            "fast_axis": (-0.793, 0.0, -0.609),
+            "slow_axis": (0.0, 1.0, 0.0),
+            "origin": (213.099, -96.0, -120.041),
+        }
+
     def _get_panel_origins(self):
         return (
-            (60.81, 96.0, -236.946),
+            self._panel_0_params()["origin"],
             (224.999, -96.0, 96.0),
             (60.809, -96.0, 236.945),
             (-214.172, -96.0, 118.198),
@@ -267,9 +280,14 @@ class FormatISISSXD(FormatNXTOFRAW):
             (96.0, -278.0, 96.0),
         )
 
+    def _panel_0_flipped(self):
+        if self.nxs_file["raw_data_1"]["run_number"][0] > 30000:
+            return True
+        return False
+
     def _get_panel_slow_axes(self):
         return (
-            (0.793, 0.0, 0.609),
+            self._panel_0_params()["slow_axis"],
             (0.0, 1.0, 0.0),
             (0.0, 1.0, 0.0),
             (0.0, 1.0, 0.0),
@@ -284,7 +302,7 @@ class FormatISISSXD(FormatNXTOFRAW):
 
     def _get_panel_fast_axes(self):
         return (
-            (0.0, -1.0, 0.0),
+            self._panel_0_params()["fast_axis"],
             (-0.0, -0.0, -1.0),
             (0.793, -0.0, -0.609),
             (0.788, -0.0, 0.616),
@@ -392,7 +410,7 @@ class FormatISISSXD(FormatNXTOFRAW):
         return (Planck * tof) / (m_n * L)
 
     def get_tof_wavelength_in_ang(self, L, tof):
-        return self.get_tof_wavelength(L, tof) * 10 ** 10
+        return self.get_tof_wavelength(L, tof) * 10**10
 
     def get_max_slice_index(self):
         return len(self.get_tof_in_seconds()) - 1
@@ -505,8 +523,8 @@ class FormatISISSXD(FormatNXTOFRAW):
         ):
             import numpy as np
 
-            rel_x = abs(x) * pixel_size_in_mm[0] * 10 ** -3
-            rel_y = abs(y) * pixel_size_in_mm[1] * 10 ** -3
+            rel_x = abs(x) * pixel_size_in_mm[0] * 10**-3
+            rel_y = abs(y) * pixel_size_in_mm[1] * 10**-3
             rel_pos = np.sqrt(np.square(rel_x) + np.square(rel_y))
             rel_L = np.sqrt(np.square(rel_pos) + np.square(centroid_l))
 
@@ -559,7 +577,7 @@ class FormatISISSXD(FormatNXTOFRAW):
             recording_table = False
             panel_num = -1
             tof_vals = self._get_time_channels_in_seconds()
-            tof_vals = [i * 10 ** 6 for i in tof_vals]
+            tof_vals = [i * 10**6 for i in tof_vals]
             tof_curve_coeffs = get_tof_curve_coefficients(tof_vals)
 
             for count, line in enumerate(lines):
@@ -579,7 +597,7 @@ class FormatISISSXD(FormatNXTOFRAW):
                         wavelength = get_pixel_wavelength_in_ang(
                             x,
                             y,
-                            tof * 10 ** -6,
+                            tof * 10**-6,
                             8.3,
                             get_panel_l(panel_num),
                             pixel_size,
