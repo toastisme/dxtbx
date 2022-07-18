@@ -20,6 +20,7 @@
 #include <scitbx/array_family/simple_tiny_io.h>
 #include <dxtbx/error.h>
 #include "scan_helpers.h"
+#include <boost/math/interpolators/cardinal_cubic_b_spline.hpp>
 
 namespace dxtbx { namespace model {
 
@@ -180,7 +181,12 @@ namespace dxtbx { namespace model {
                 int batch_offset = 0)
         : Sequence(image_range, batch_offset),
           tof_in_seconds_(tof_in_seconds),
-          wavelengths_(wavelengths) {}
+          wavelengths_(wavelengths) {
+      if (wavelengths.size() > 5) {
+        frame_to_wavelength_ = get_spline(wavelengths_);
+        frame_to_tof_ = get_spline(tof_in_seconds_);
+      }
+    }
 
     virtual ~TOFSequence() {}
 
@@ -202,6 +208,19 @@ namespace dxtbx { namespace model {
         wavelengths.push_back(wavelengths_[i]);
       }
       return wavelengths;
+    }
+
+    boost::math::interpolators::cardinal_cubic_b_spline<double> get_spline(
+      scitbx::af::shared<double> data) {
+      double t0 = 0;
+      double h = 0.01;
+      boost::math::interpolators::cardinal_cubic_b_spline<double> spline(
+        data.begin(), data.end(), t0, h);
+      return spline;
+    }
+
+    double get_wavelength_from_frame(const double frame) const {
+      return frame_to_wavelength_(frame);
     }
 
     int get_num_tof_bins() const {
@@ -286,6 +305,8 @@ namespace dxtbx { namespace model {
   private:
     scitbx::af::shared<double> tof_in_seconds_;
     scitbx::af::shared<double> wavelengths_;
+    boost::math::interpolators::cardinal_cubic_b_spline<double> frame_to_wavelength_;
+    boost::math::interpolators::cardinal_cubic_b_spline<double> frame_to_tof_;
   };
 
   /** A class to represent a scan */
