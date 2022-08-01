@@ -23,8 +23,8 @@
 
 namespace dxtbx { namespace model {
 
-  using scitbx::vec3;
   using scitbx::vec2;
+  using scitbx::vec3;
 
   /** Base class for beam objects */
   class Beam {
@@ -37,23 +37,24 @@ namespace dxtbx { namespace model {
     //  Rotate the beam about an axis
     virtual void rotate_around_origin(vec3<double> axis, double angle) = 0;
     virtual vec3<double> get_unit_s0() const = 0;
-    virtual void set_unit_s0(vec3<double> unit_s0) = 0; 
+    virtual void set_unit_s0(vec3<double> unit_s0) = 0;
   };
 
-  class PolyBeam : public Beam{
+  class PolyBeam : public Beam {
   public:
-
     PolyBeam()
-      : direction_(0.0, 0.0, 0.0),
-        sample_to_moderator_distance_(0),
-        wavelength_range_(0.0, 0.0) {}
+        : direction_(0.0, 0.0, 0.0),
+          sample_to_moderator_distance_(0),
+          wavelength_range_(0.0, 0.0) {}
 
     /**
      * @param direction unit vector from sample to source
      * @param sample_to_moderator_distance (mm)
      * @param wavelength_range min and max incident wavelengths
      */
-    PolyBeam(vec3<double> direction, double sample_to_moderator_distance, vec2<double> wavelength_range)
+    PolyBeam(vec3<double> direction,
+             double sample_to_moderator_distance,
+             vec2<double> wavelength_range)
         : direction_(direction),
           sample_to_moderator_distance_(sample_to_moderator_distance),
           wavelength_range_(wavelength_range) {}
@@ -70,22 +71,22 @@ namespace dxtbx { namespace model {
       return sample_to_moderator_distance_;
     }
 
-    vec2<double> get_wavelength_range() const{
+    vec2<double> get_wavelength_range() const {
       DXTBX_ASSERT(wavelength_range_.length() > 0);
       return wavelength_range_;
     }
 
-    void set_sample_to_source_direction(vec3<double> direction) override{
+    void set_sample_to_source_direction(vec3<double> direction) override {
       DXTBX_ASSERT(direction.length() > 0);
       direction_ = direction.normalize();
     }
 
-    void set_sample_to_moderator_distance(float sample_to_moderator_distance){
+    void set_sample_to_moderator_distance(float sample_to_moderator_distance) {
       DXTBX_ASSERT(sample_to_moderator_distance > 0);
       sample_to_moderator_distance_ = sample_to_moderator_distance;
     }
 
-    void set_wavelength_range(vec2<double> wavelength_range){
+    void set_wavelength_range(vec2<double> wavelength_range) {
       DXTBX_ASSERT(wavelength_range.length() > 0);
       wavelength_range_ = wavelength_range;
     }
@@ -109,7 +110,6 @@ namespace dxtbx { namespace model {
     vec3<double> direction_;
     double sample_to_moderator_distance_;
     vec2<double> wavelength_range_;
-
   };
 
   /** A class to represent a simple beam. */
@@ -181,9 +181,9 @@ namespace dxtbx { namespace model {
      * @param sigma_divergence The standard deviation of the beam divergence
      */
     MonoBeam(vec3<double> direction,
-         double wavelength,
-         double divergence,
-         double sigma_divergence)
+             double wavelength,
+             double divergence,
+             double sigma_divergence)
         : wavelength_(wavelength),
           divergence_(divergence),
           sigma_divergence_(sigma_divergence),
@@ -196,13 +196,13 @@ namespace dxtbx { namespace model {
     }
 
     MonoBeam(vec3<double> direction,
-         double wavelength,
-         double divergence,
-         double sigma_divergence,
-         vec3<double> polarization_normal,
-         double polarization_fraction,
-         double flux,
-         double transmission)
+             double wavelength,
+             double divergence,
+             double sigma_divergence,
+             vec3<double> polarization_normal,
+             double polarization_fraction,
+             double flux,
+             double transmission)
         : wavelength_(wavelength),
           divergence_(divergence),
           sigma_divergence_(sigma_divergence),
@@ -445,7 +445,8 @@ namespace dxtbx { namespace model {
   /** Print beam information */
   inline std::ostream &operator<<(std::ostream &os, const PolyBeam &b) {
     os << "PolyBeam:\n";
-    os << "    sample to moderator distance: " << b.get_sample_to_moderator_distance() << "\n";
+    os << "    sample to moderator distance: " << b.get_sample_to_moderator_distance()
+       << "\n";
     os << "    sample to source direction : "
        << b.get_sample_to_source_direction().const_ref() << "\n";
     return os;
