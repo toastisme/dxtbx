@@ -20,6 +20,7 @@
 #include <scitbx/array_family/simple_tiny_io.h>
 #include <dxtbx/error.h>
 #include "scan_helpers.h"
+#include <boost/math/interpolators/cardinal_cubic_b_spline.hpp>
 
 namespace dxtbx { namespace model {
 
@@ -180,17 +181,47 @@ namespace dxtbx { namespace model {
                 int batch_offset = 0)
         : Sequence(image_range, batch_offset),
           tof_in_seconds_(tof_in_seconds),
-          wavelengths_(wavelengths) {}
+          wavelengths_(wavelengths) {
+      create_splines();
+    }
 
     virtual ~TOFSequence() {}
+
+    TOFSequence(const TOFSequence &rhs)
+        : Sequence(rhs.image_range_, rhs.batch_offset_),
+          tof_in_seconds_(scitbx::af::reserve(rhs.tof_in_seconds_.size())),
+          wavelengths_(scitbx::af::reserve(rhs.wavelengths_.size())) {
+      std::copy(rhs.tof_in_seconds_.begin(),
+                rhs.tof_in_seconds_.end(),
+                std::back_inserter(tof_in_seconds_));
+      std::copy(rhs.wavelengths_.begin(),
+                rhs.wavelengths_.end(),
+                std::back_inserter(wavelengths_));
+      create_splines();
+    }
 
     bool is_still() const {
       return false;
     }
 
+    void create_splines() {
+      if (wavelengths_.size() > 5) {
+        frame_to_wavelength_ = get_spline(wavelengths_);
+        frame_to_tof_ = get_spline(tof_in_seconds_);
+      }
+    }
+
     scitbx::af::shared<double> get_tof_in_seconds() const {
       scitbx::af::shared<double> tof_in_seconds;
       for (int i = image_range_[0] - 1; i < image_range_[1] - 1; ++i) {
+        tof_in_seconds.push_back(tof_in_seconds_[i]);
+      }
+      return tof_in_seconds;
+    }
+
+    scitbx::af::shared<double> get_all_tof_in_seconds() const {
+      scitbx::af::shared<double> tof_in_seconds;
+      for (std::size_t i = 0; i < tof_in_seconds_.size(); ++i) {
         tof_in_seconds.push_back(tof_in_seconds_[i]);
       }
       return tof_in_seconds;
@@ -202,6 +233,28 @@ namespace dxtbx { namespace model {
         wavelengths.push_back(wavelengths_[i]);
       }
       return wavelengths;
+    }
+
+    scitbx::af::shared<double> get_all_wavelengths() const {
+      scitbx::af::shared<double> wavelengths;
+      for (std::size_t i = 0; i < wavelengths_.size(); ++i) {
+        wavelengths.push_back(wavelengths_[i]);
+      }
+      return wavelengths;
+    }
+
+    boost::math::interpolators::cardinal_cubic_b_spline<double> get_spline(
+      scitbx::af::shared<double> data) {
+      double t0 = 0;
+      double h = 0.01;
+      boost::math::interpolators::cardinal_cubic_b_spline<double> spline(
+        data.begin(), data.end(), t0, h);
+      return spline;
+    }
+
+    double get_wavelength_from_frame(const double frame) const {
+      DXTBX_ASSERT(wavelengths_.size() > 5);
+      return frame_to_wavelength_(frame);
     }
 
     int get_num_tof_bins() const {
@@ -286,6 +339,8 @@ namespace dxtbx { namespace model {
   private:
     scitbx::af::shared<double> tof_in_seconds_;
     scitbx::af::shared<double> wavelengths_;
+    boost::math::interpolators::cardinal_cubic_b_spline<double> frame_to_wavelength_;
+    boost::math::interpolators::cardinal_cubic_b_spline<double> frame_to_tof_;
   };
 
   /** A class to represent a scan */
