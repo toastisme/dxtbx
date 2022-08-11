@@ -59,6 +59,10 @@ class Reader:
     def paths(self):
         return [self._filename]
 
+    def set_path(self, new_path):
+        assert self.is_single_file_reader()
+        self._filename = new_path
+
     def __len__(self):
         return self._num_images
 
