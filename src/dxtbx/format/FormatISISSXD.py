@@ -7,6 +7,8 @@ import h5py
 import numpy as np
 from scipy.constants import Planck, m_n
 
+import cctbx.array_family.flex
+
 from dials.array_family import flex
 
 from dxtbx import IncorrectFormatError
@@ -73,7 +75,7 @@ class FormatISISSXD(FormatNXTOFRAW):
         panel_start_idx = (total_pixels * panel) + (idx_offset * panel)
         return int(panel_start_idx + panel_idx)
 
-    def get_raw_spectra(self, normalize_by_proton_charge=False):
+    def get_raw_spectra(self, normalize_by_proton_charge=True):
         if normalize_by_proton_charge:
             proton_charge = self.nxs_file["raw_data_1"]["proton_charge"][0]
             return (
@@ -84,10 +86,14 @@ class FormatISISSXD(FormatNXTOFRAW):
     def save_spectra(self, spectra, output_filename):
         copy(self.image_file, output_filename)
         nxs_file = h5py.File(output_filename, "r+")
-        nxs_file["raw_data_1"]["detector_1"]["counts"][:] = spectra
+        del nxs_file["raw_data_1"]["detector_1"]["counts"]
+        nxs_file["raw_data_1/detector_1"].create_dataset(
+            "counts", spectra.shape, dtype=np.dtype("f8")
+        )
+        nxs_file["raw_data_1/detector_1/counts"][:] = spectra
         nxs_file.close()
 
-    def load_raw_data(self, as_numpy_arrays=False, normalise_by_proton_charge=False):
+    def load_raw_data(self, as_numpy_arrays=False, normalise_by_proton_charge=True):
         def get_detector_idx_array(detector_number, image_size, idx_offset):
             total_pixels = image_size[0] * image_size[1]
             min_range = (total_pixels * (detector_number - 1)) + (
@@ -199,6 +205,10 @@ class FormatISISSXD(FormatNXTOFRAW):
         return self.nxs_file["raw_data_1"]["instrument"]["dae"]["time_channels_1"][
             "time_of_flight"
         ][:]
+
+    def get_time_channel_bin_widths_in_seconds(self):
+        bins = self._get_time_channel_bins()
+        return [(bins[i + 1] - bins[i]) * 10**-6 for i in range(len(bins) - 1)]
 
     def _get_time_channels_in_seconds(self):
         bins = self._get_time_channel_bins()
@@ -410,6 +420,13 @@ class FormatISISSXD(FormatNXTOFRAW):
     def _get_panel_pixel_size_in_mm(self):
         return (3, 3)
 
+    def _get_panel_size_in_mm(self):
+        size_in_px = self._get_panel_size_in_px()
+        pixel_size_in_mm = self._get_panel_pixel_size_in_mm()
+        return tuple(
+            [size_in_px[i] * pixel_size_in_mm[i] for i in range(len(size_in_px))]
+        )
+
     def _get_panel_type(self):
         return "SENSOR_PAD"
 
@@ -482,12 +499,54 @@ class FormatISISSXD(FormatNXTOFRAW):
 
         return panel_pos
 
+    def get_spectra_L1s(self, detector):
+
+        pixel_size = self._get_panel_pixel_size_in_mm()
+        panel_size = self._get_panel_size_in_px()
+        num_pixels = panel_size[0] * panel_size[1]
+        pixels = cctbx.array_family.flex.vec2_double(num_pixels)
+        offset = (0, 0, 0, 0)
+        count = 0
+        for i in range(panel_size[0]):
+            for j in range(panel_size[1]):
+                pixels[count] = (i * pixel_size[0], j * pixel_size[1])
+
+        spectra_L1 = []
+        for p in range(self._get_num_panels()):
+            s1 = detector[p].get_lab_coord(pixels)
+            L1 = s1.norms() * 10**-3
+            L1 = np.append(L1, offset)
+            spectra_L1 = np.append(spectra_L1, L1)
+
+        return spectra_L1
+
+    def get_momentum_correction(self, detector):
+        def get_momentum_bin_widths(L0, L1, tof_bins):
+            wavelengths = [
+                self.get_tof_wavelength_in_ang(L0 + L1, tof) for tof in tof_bins
+            ]
+
+            momentum = [2 * np.pi / i for i in wavelengths]
+            bin_widths = np.abs(np.diff(momentum))
+            return bin_widths
+
+        spectra_L1 = self.get_spectra_L1s(detector)
+
+        L0 = self._get_sample_to_moderator_distance() * 10**-3
+        tof_bins = self._get_time_channel_bins()
+        tof_bins = [i * 10**-6 for i in tof_bins]
+
+        # For each pixel, get the bin width in 2pi/lambda
+        correction = np.zeros((1, len(spectra_L1), len(tof_bins) - 1))
+        for i, L1 in enumerate(spectra_L1):
+            correction[0][i] = get_momentum_bin_widths(L0, L1, tof_bins)
+
+        return correction
+
     def get_reflection_table_from_use_file(self, use_file, specific_panel=None):
 
         import dials_array_family_flex_ext
         from scipy import interpolate
-
-        import cctbx.array_family.flex
 
         def is_data_row(row):
             num_data_columns = 13

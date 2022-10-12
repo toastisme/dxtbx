@@ -18,9 +18,12 @@
 #include <scitbx/array_family/shared.h>
 #include <scitbx/array_family/simple_io.h>
 #include <scitbx/array_family/simple_tiny_io.h>
+#include <scitbx/constants.h>
 #include <dxtbx/error.h>
 #include "scan_helpers.h"
 #include <boost/math/interpolators/cardinal_cubic_b_spline.hpp>
+#include <boost/math/interpolators/barycentric_rational.hpp>
+#include <boost/iterator/counting_iterator.hpp>
 
 namespace dxtbx { namespace model {
 
@@ -166,14 +169,18 @@ namespace dxtbx { namespace model {
     TOFSequence()
         : Sequence(vec2<int>{0, 0}, 0),
           tof_in_seconds_(num_images_, 0),
-          wavelengths_(num_images_, 0) {}
+          wavelengths_(num_images_, 0),
+          frame_to_tof_(boost::none),
+          frame_to_wavelength_(boost::none),
+          tof_to_frame_(boost::none),
+          wavelength_to_frame_(boost::none) {}
 
     /**
      * @param image_range The range of images covered by the sequence
      * @param tof_in_seconds The ToF values of each image
      * @param batch_offset An offset to add to the image number (for tracking
      *                      unique batch numbers for multi-crystal datasets)
-     *
+k     *
      */
     TOFSequence(vec2<int> image_range,
                 const scitbx::af::shared<double> &tof_in_seconds,
@@ -181,7 +188,11 @@ namespace dxtbx { namespace model {
                 int batch_offset = 0)
         : Sequence(image_range, batch_offset),
           tof_in_seconds_(tof_in_seconds),
-          wavelengths_(wavelengths) {
+          wavelengths_(wavelengths),
+          frame_to_tof_(boost::none),
+          frame_to_wavelength_(boost::none),
+          tof_to_frame_(boost::none),
+          wavelength_to_frame_(boost::none) {
       create_splines();
     }
 
@@ -190,7 +201,11 @@ namespace dxtbx { namespace model {
     TOFSequence(const TOFSequence &rhs)
         : Sequence(rhs.image_range_, rhs.batch_offset_),
           tof_in_seconds_(scitbx::af::reserve(rhs.tof_in_seconds_.size())),
-          wavelengths_(scitbx::af::reserve(rhs.wavelengths_.size())) {
+          wavelengths_(scitbx::af::reserve(rhs.wavelengths_.size())),
+          frame_to_tof_(boost::none),
+          frame_to_wavelength_(boost::none),
+          tof_to_frame_(boost::none),
+          wavelength_to_frame_(boost::none) {
       std::copy(rhs.tof_in_seconds_.begin(),
                 rhs.tof_in_seconds_.end(),
                 std::back_inserter(tof_in_seconds_));
@@ -204,11 +219,39 @@ namespace dxtbx { namespace model {
       return false;
     }
 
-    void create_splines() {
-      if (wavelengths_.size() > 5) {
-        frame_to_wavelength_ = get_spline(wavelengths_);
-        frame_to_tof_ = get_spline(tof_in_seconds_);
+    double get_tof_wavelength_in_ang(double L, double tof) const {
+      return ((scitbx::constants::Planck * tof) / (scitbx::constants::m_n * L))
+             * std::pow(10, 10);
+    }
+
+    scitbx::af::shared<double> get_tof_wavelengths_in_ang(
+      const scitbx::af::shared<double> L,
+      const scitbx::af::shared<double> tof) const {
+      DXTBX_ASSERT(L.size() == tof.size());
+      scitbx::af::shared<double> wavelengths;
+      for (std::size_t i = 0; i < tof.size(); ++i) {
+        wavelengths.push_back(get_tof_wavelength_in_ang(L[i], tof[i]));
       }
+      return wavelengths;
+    }
+
+    void create_splines() {
+      if (wavelengths_.size() < 5) {
+        return;
+      }
+
+      std::vector<double> frames = get_frames_vec();
+      std::vector<double> wavelengths = get_wavelengths_vec();
+      std::vector<double> tof = get_tof_in_seconds_vec();
+
+      DXTBX_ASSERT(frames.size() > 0);
+      DXTBX_ASSERT(wavelengths.size() > 0);
+      DXTBX_ASSERT(tof.size() > 0);
+
+      frame_to_wavelength_ = get_barycentric_spline(frames, wavelengths);
+      frame_to_tof_ = get_barycentric_spline(frames, tof);
+      tof_to_frame_ = get_barycentric_spline(tof, frames);
+      wavelength_to_frame_ = get_barycentric_spline(wavelengths, frames);
     }
 
     scitbx::af::shared<double> get_tof_in_seconds() const {
@@ -243,7 +286,7 @@ namespace dxtbx { namespace model {
       return wavelengths;
     }
 
-    boost::math::interpolators::cardinal_cubic_b_spline<double> get_spline(
+    boost::math::interpolators::cardinal_cubic_b_spline<double> get_cubic_b_spline(
       scitbx::af::shared<double> data) {
       double t0 = 0;
       double h = 0.01;
@@ -252,9 +295,41 @@ namespace dxtbx { namespace model {
       return spline;
     }
 
+    boost::math::barycentric_rational<double> get_barycentric_spline(
+      std::vector<double> x,
+      std::vector<double> y) {
+      boost::math::barycentric_rational<double> spline(x.data(), y.data(), x.size());
+      return spline;
+    }
+
     double get_wavelength_from_frame(const double frame) const {
-      DXTBX_ASSERT(wavelengths_.size() > 5);
-      return frame_to_wavelength_(frame);
+      DXTBX_ASSERT(frame_to_wavelength_);
+      return frame_to_wavelength_.get()(frame);
+    }
+
+    double get_tof_from_frame(const double frame) const {
+      DXTBX_ASSERT(frame_to_tof_);
+      return frame_to_tof_.get()(frame);
+    }
+
+    scitbx::af::shared<double> get_tof_from_frames(
+      const scitbx::af::shared<double> frames) const {
+      DXTBX_ASSERT(frame_to_tof_);
+      scitbx::af::shared<double> tof;
+      for (std::size_t i = 0; i < frames.size(); ++i) {
+        tof.push_back(frame_to_tof_.get()(frames[i]));
+      }
+      return tof;
+    }
+
+    double get_frame_from_wavelength(const double wavelength) const {
+      DXTBX_ASSERT(wavelength_to_frame_);
+      return wavelength_to_frame_.get()(wavelength);
+    }
+
+    double get_frame_from_tof(const double tof) const {
+      DXTBX_ASSERT(tof_to_frame_);
+      return tof_to_frame_.get()(tof);
     }
 
     int get_num_tof_bins() const {
@@ -337,10 +412,38 @@ namespace dxtbx { namespace model {
     friend std::ostream &operator<<(std::ostream &os, const TOFSequence &s);
 
   private:
+    std::vector<double> get_frames_vec() const {
+      DXTBX_ASSERT(tof_in_seconds_.size() > 0);
+      std::vector<double> frames;
+      for (std::size_t i = 0; i < tof_in_seconds_.size(); ++i) {
+        frames.push_back(i + 1);
+      }
+      return frames;
+    }
+
+    std::vector<double> get_tof_in_seconds_vec() const {
+      DXTBX_ASSERT(tof_in_seconds_.size() > 0);
+      std::vector<double> tof_in_seconds;
+      for (std::size_t i = 0; i < tof_in_seconds_.size(); ++i) {
+        tof_in_seconds.push_back(tof_in_seconds_[i]);
+      }
+      return tof_in_seconds;
+    }
+
+    std::vector<double> get_wavelengths_vec() const {
+      DXTBX_ASSERT(wavelengths_.size() > 0);
+      std::vector<double> wavelengths;
+      for (std::size_t i = 0; i < wavelengths_.size(); ++i) {
+        wavelengths.push_back(wavelengths_[i]);
+      }
+      return wavelengths;
+    }
     scitbx::af::shared<double> tof_in_seconds_;
     scitbx::af::shared<double> wavelengths_;
-    boost::math::interpolators::cardinal_cubic_b_spline<double> frame_to_wavelength_;
-    boost::math::interpolators::cardinal_cubic_b_spline<double> frame_to_tof_;
+    boost::optional<boost::math::barycentric_rational<double> > wavelength_to_frame_;
+    boost::optional<boost::math::barycentric_rational<double> > tof_to_frame_;
+    boost::optional<boost::math::barycentric_rational<double> > frame_to_wavelength_;
+    boost::optional<boost::math::barycentric_rational<double> > frame_to_tof_;
   };
 
   /** A class to represent a scan */
