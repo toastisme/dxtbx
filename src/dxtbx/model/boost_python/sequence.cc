@@ -232,7 +232,12 @@ namespace dxtbx { namespace model { namespace boost_python {
     vec2<int> ir = boost::python::extract<vec2<int> >(obj["image_range"]);
     int bo = boost::python::extract<int>(obj["batch_offset"]);
     DXTBX_ASSERT(ir[1] >= ir[0]);
-    std::size_t num = ir[1] - ir[0] + 1;
+    boost::python::list tof = boost::python::extract<boost::python::list>(
+      obj.get("tof_in_seconds", boost::python::list()));
+    boost::python::list wavelengths = boost::python::extract<boost::python::list>(
+      obj.get("wavelengths", boost::python::list()));
+    std::size_t num = boost::python::len(tof);
+    DXTBX_ASSERT(num == boost::python::len(wavelengths));
     TOFSequence *tof_sequence = new TOFSequence(
       ir,
       get_tof_array_data(num,
@@ -572,6 +577,21 @@ namespace dxtbx { namespace model { namespace boost_python {
       .def("get_wavelengths", &TOFSequence::get_wavelengths)
       .def("get_all_tof_in_seconds", &TOFSequence::get_all_tof_in_seconds)
       .def("get_all_wavelengths", &TOFSequence::get_all_wavelengths)
+      .def("get_wavelength_from_frame",
+           &TOFSequence::get_wavelength_from_frame,
+           (arg("frame")))
+      .def("get_tof_from_frame", &TOFSequence::get_tof_from_frame, (arg("frame")))
+      .def("get_tof_from_frames", &TOFSequence::get_tof_from_frames, (arg("frames")))
+      .def("get_frame_from_wavelength",
+           &TOFSequence::get_frame_from_wavelength,
+           (arg("wavelength")))
+      .def("get_frame_from_tof", &TOFSequence::get_frame_from_tof, (arg("tof")))
+      .def("get_tof_wavelength_in_ang",
+           &TOFSequence::get_tof_wavelength_in_ang,
+           (arg("L"), arg("tof")))
+      .def("get_tof_wavelengths_in_ang",
+           &TOFSequence::get_tof_wavelengths_in_ang,
+           (arg("L"), arg("tof")))
       .def("is_still", &TOFSequence::is_still)
       .def("__deepcopy__", &tof_sequence_deepcopy)
       .def("__copy__", &tof_sequence_copy)

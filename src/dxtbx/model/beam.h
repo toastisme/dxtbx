@@ -18,6 +18,7 @@
 #include <scitbx/array_family/shared.h>
 #include <scitbx/array_family/simple_io.h>
 #include <scitbx/array_family/simple_tiny_io.h>
+#include <scitbx/constants.h>
 #include <dxtbx/error.h>
 #include "model_helpers.h"
 
@@ -25,6 +26,8 @@ namespace dxtbx { namespace model {
 
   using scitbx::vec2;
   using scitbx::vec3;
+  using scitbx::constants::m_n;
+  using scitbx::constants::Planck;
 
   /** Base class for beam objects */
   class Beam {
@@ -89,6 +92,12 @@ namespace dxtbx { namespace model {
     void set_wavelength_range(vec2<double> wavelength_range) {
       DXTBX_ASSERT(wavelength_range.length() > 0);
       wavelength_range_ = wavelength_range;
+    }
+
+    double get_tof_from_wavelength(double wavelength, double L1) const {
+      double L0 = get_sample_to_moderator_distance() * std::pow(10, -3);
+      wavelength = wavelength * std::pow(10, -10);
+      return (wavelength * m_n * (L0 + L1)) / Planck;
     }
 
     void rotate_around_origin(vec3<double> axis, double angle) override {
