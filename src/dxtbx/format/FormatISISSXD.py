@@ -75,7 +75,7 @@ class FormatISISSXD(FormatNXTOFRAW):
         panel_start_idx = (total_pixels * panel) + (idx_offset * panel)
         return int(panel_start_idx + panel_idx)
 
-    def get_raw_spectra(self, normalize_by_proton_charge=True):
+    def get_raw_spectra(self, normalize_by_proton_charge=False):
         if normalize_by_proton_charge:
             proton_charge = self.nxs_file["raw_data_1"]["proton_charge"][0]
             return (
@@ -93,7 +93,7 @@ class FormatISISSXD(FormatNXTOFRAW):
         nxs_file["raw_data_1/detector_1/counts"][:] = spectra
         nxs_file.close()
 
-    def load_raw_data(self, as_numpy_arrays=False, normalise_by_proton_charge=True):
+    def load_raw_data(self, as_numpy_arrays=False, normalise_by_proton_charge=False):
         def get_detector_idx_array(detector_number, image_size, idx_offset):
             total_pixels = image_size[0] * image_size[1]
             min_range = (total_pixels * (detector_number - 1)) + (
@@ -158,6 +158,29 @@ class FormatISISSXD(FormatNXTOFRAW):
             raw_spectra_two_theta += [0] * idx_offset
 
         return raw_spectra_two_theta
+
+    def get_raw_spectra_L1(self):
+
+        detector = self.get_detector()
+        pixel_size = self._get_panel_pixel_size_in_mm()
+        panel_size = self._get_panel_size_in_px()
+        pixels = flex.vec2_double(panel_size[0] * panel_size[1])
+
+        count = 0
+        for i in range(panel_size[0]):
+            for j in range(panel_size[1]):
+                pixels[count] = (i * pixel_size[0], j * pixel_size[1])
+                count = +1
+
+        # Index offset in SXD data
+        # See p24 of https://www.isis.stfc.ac.uk/Pages/sxd-user-guide6683.pdf
+        idx_offset = 4
+        L1 = []
+        for panel in detector:
+            L1_p = panel.get_lab_coord(pixels).norms() * 10**-3
+            L1 += list(L1_p)
+            L1 += [0] * idx_offset
+        return L1
 
     def _get_detector(self):
 
