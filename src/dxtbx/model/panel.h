@@ -256,18 +256,31 @@ namespace dxtbx { namespace model {
      * @returns flex::double array containing 2theta at every pixel
      */
     scitbx::af::versa<double, scitbx::af::c_grid<2> > get_two_theta_array(
-      vec3<double> s0) const {
+      vec3<double> s0,
+      bool pixel_center = false) const {
       DXTBX_ASSERT(s0.length() > 0);
       size_t fast = image_size_[0], slow = image_size_[1];
 
-      scitbx::af::versa<double, scitbx::af::c_grid<2> > result(
-        scitbx::af::c_grid<2>(slow, fast));
-      for (size_t j = 0; j < slow; j++) {
-        for (size_t i = 0; i < fast; i++) {
-          result(j, i) = angle_safe(s0, get_pixel_lab_coord(vec2<double>(i, j)));
+      if (!pixel_center) {
+        scitbx::af::versa<double, scitbx::af::c_grid<2> > result(
+          scitbx::af::c_grid<2>(slow, fast));
+        for (size_t j = 0; j < slow; j++) {
+          for (size_t i = 0; i < fast; i++) {
+            result(j, i) = angle_safe(s0, get_pixel_lab_coord(vec2<double>(i, j)));
+          }
         }
+        return result;
+      } else {
+        scitbx::af::versa<double, scitbx::af::c_grid<2> > result(
+          scitbx::af::c_grid<2>(slow, fast));
+        for (size_t j = 0; j < slow; j++) {
+          for (size_t i = 0; i < fast; i++) {
+            result(j, i) =
+              angle_safe(s0, get_pixel_lab_coord(vec2<double>(i - .5, j - .5)));
+          }
+        }
+        return result;
       }
-      return result;
     }
 
     /**
