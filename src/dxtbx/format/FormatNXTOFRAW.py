@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, print_function
+from __future__ import annotations
 
 from sys import argv
 
@@ -56,7 +56,7 @@ class FormatNXTOFRAW(FormatHDF5):
 
         """
 
-        required_fields = ["detector_1"]
+        required_fields = ["proton_charge"]
 
         def required_fields_present(required_fields, image_file):
             with h5py.File(image_file, "r") as handle:
@@ -69,6 +69,9 @@ class FormatNXTOFRAW(FormatHDF5):
             return False
 
         return required_fields_present(required_fields, image_file)
+
+    def get_base_entry_name(self, nxs_file) -> str:
+        return list(nxs_file.keys())[0]
 
 
 if __name__ == "__main__":
