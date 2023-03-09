@@ -145,6 +145,22 @@ class FormatISISSXD(FormatNXTOFRAW):
             raw_data_idx.append(arr)
         return tuple(raw_data_idx)
 
+    def get_image_data_2d(self):
+        self.raw_data = self.load_raw_data(as_numpy_arrays=True)
+        raw_summed_data = []
+        max_val = None
+        for i in self.raw_data:
+            arr = np.sum(i, axis=2)
+            arr_max_val = np.max(arr)
+            if max_val is None or arr_max_val > max_val:
+                max_val = arr_max_val
+            raw_summed_data.append(arr.flatten())
+        return tuple([(i / max_val).tolist() for i in raw_summed_data])
+
+    def get_raw_spectra_two_theta(self):
+        detector = self.get_detector()
+        unit_s0 = self.get_beam().get_unit_s0()
+
     def _get_panel_pixel_s1(self, detector, center=True):
         def get_panel_pixels_in_mm_as_1d(flip):
             pixel_size = self._get_panel_pixel_size_in_mm()
@@ -179,6 +195,7 @@ class FormatISISSXD(FormatNXTOFRAW):
     def get_raw_spectra_two_theta(self, detector, beam):
         unit_s0 = np.array(beam.get_unit_s0())
         panel_pixel_s1 = self._get_panel_pixel_s1(detector, center=False)
+
         # Index offset in SXD data
         # See p24 of https://www.isis.stfc.ac.uk/Pages/sxd-user-guide6683.pdf
         idx_offset = 4
@@ -461,6 +478,9 @@ class FormatISISSXD(FormatNXTOFRAW):
 
     def get_goniometer(self, idx=None):
         return None
+
+    def get_panel_size_in_px(self):
+        return (64, 64)
 
     def _get_panel_size_in_px(self):
         return (64, 64)
