@@ -75,7 +75,7 @@ class FormatISISSXD(FormatNXTOFRAW):
         panel_start_idx = (total_pixels * panel) + (idx_offset * panel)
         return int(panel_start_idx + panel_idx)
 
-    def get_raw_spectra(self, normalize_by_proton_charge=True):
+    def get_raw_spectra(self, normalize_by_proton_charge=False):
         if normalize_by_proton_charge:
             proton_charge = self.nxs_file["raw_data_1"]["proton_charge"][0]
             return (
@@ -93,7 +93,7 @@ class FormatISISSXD(FormatNXTOFRAW):
         nxs_file["raw_data_1/detector_1/counts"][:] = spectra
         nxs_file.close()
 
-    def load_raw_data(self, as_numpy_arrays=False, normalise_by_proton_charge=True):
+    def load_raw_data(self, as_numpy_arrays=False, normalise_by_proton_charge=False):
         def get_detector_idx_array(detector_number, image_size, idx_offset):
             total_pixels = image_size[0] * image_size[1]
             min_range = (total_pixels * (detector_number - 1)) + (
@@ -160,16 +160,69 @@ class FormatISISSXD(FormatNXTOFRAW):
     def get_raw_spectra_two_theta(self):
         detector = self.get_detector()
         unit_s0 = self.get_beam().get_unit_s0()
+
+    def _get_panel_pixel_s1(self, detector, center=True):
+        def get_panel_pixels_in_mm_as_1d(flip):
+            pixel_size = self._get_panel_pixel_size_in_mm()
+            panel_size = self._get_panel_size_in_px()
+            pixels = flex.vec2_double(panel_size[0] * panel_size[1])
+
+            if center:
+                count = 0
+                for i in range(panel_size[0]):
+                    for j in range(panel_size[1]):
+                        pixels[count] = (
+                            (i * pixel_size[0]) + (pixel_size[0] * 0.5),
+                            (j * pixel_size[1]) + (pixel_size[1] * 0.5),
+                        )
+                        count += 1
+            else:
+                count = 0
+                for i in range(panel_size[0]):
+                    for j in range(panel_size[1]):
+                        pixels[count] = ((i * pixel_size[0]), (j * pixel_size[1]))
+                        count += 1
+            return pixels
+
+        pixels_in_mm = get_panel_pixels_in_mm_as_1d(center)
+
+        panel_pixel_s1 = []
+        for panel in detector:
+            panel_pixel_s1.append(panel.get_lab_coord(pixels_in_mm))
+
+        return panel_pixel_s1
+
+    def get_raw_spectra_two_theta(self, detector, beam):
+        unit_s0 = np.array(beam.get_unit_s0())
+        panel_pixel_s1 = self._get_panel_pixel_s1(detector, center=False)
+
         # Index offset in SXD data
         # See p24 of https://www.isis.stfc.ac.uk/Pages/sxd-user-guide6683.pdf
         idx_offset = 4
         raw_spectra_two_theta = []
-        for panel in detector:
-            two_theta = panel.get_two_theta_array(unit_s0)
+        for s1_p in panel_pixel_s1:
+            s1_p_n = s1_p / s1_p.norms()
+            c = np.dot(s1_p_n, unit_s0)
+            c = np.clip(c, -1, 1)
+            two_theta = np.arccos(c)
             raw_spectra_two_theta += list(two_theta)
             raw_spectra_two_theta += [0] * idx_offset
 
         return raw_spectra_two_theta
+
+    def get_raw_spectra_L1(self, detector):
+
+        panel_pixel_s1 = self._get_panel_pixel_s1(detector, center=False)
+
+        # Index offset in SXD data
+        # See p24 of https://www.isis.stfc.ac.uk/Pages/sxd-user-guide6683.pdf
+        idx_offset = 4
+        L1 = []
+        for s1_p in panel_pixel_s1:
+            L1_p = s1_p.norms() * 10**-3
+            L1 += list(L1_p)
+            L1 += [0] * idx_offset
+        return L1
 
     def _get_detector(self):
 
@@ -535,28 +588,10 @@ class FormatISISSXD(FormatNXTOFRAW):
 
         return spectra_L1
 
-    def get_momentum_correction(self, detector):
-        def get_momentum_bin_widths(L0, L1, tof_bins):
-            wavelengths = [
-                self.get_tof_wavelength_in_ang(L0 + L1, tof) for tof in tof_bins
-            ]
-
-            momentum = [2 * np.pi / i for i in wavelengths]
-            bin_widths = np.abs(np.diff(momentum))
-            return bin_widths
-
-        spectra_L1 = self.get_spectra_L1s(detector)
-
-        L0 = self._get_sample_to_moderator_distance() * 10**-3
+    def get_bin_width_correction(self):
         tof_bins = self._get_time_channel_bins()
-        tof_bins = [i * 10**-6 for i in tof_bins]
-
-        # For each pixel, get the bin width in 2pi/lambda
-        correction = np.zeros((1, len(spectra_L1), len(tof_bins) - 1))
-        for i, L1 in enumerate(spectra_L1):
-            correction[0][i] = get_momentum_bin_widths(L0, L1, tof_bins)
-
-        return correction
+        tof_bin_widths = np.abs(np.diff(tof_bins))
+        return tof_bin_widths
 
     def get_reflection_table_from_use_file(self, use_file, specific_panel=None):
 
