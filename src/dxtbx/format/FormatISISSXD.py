@@ -93,6 +93,14 @@ class FormatISISSXD(FormatNXTOFRAW):
         nxs_file["raw_data_1/detector_1/counts"][:] = spectra
         nxs_file.close()
 
+    def get_instrument_name(self):
+        return "SXD"
+
+    def get_experiment_description(self):
+        title = self.nxs_file["raw_data_1"]["title"][0].decode()
+        run_number = self.nxs_file["raw_data_1"]["run_number"][0]
+        return f"{title} ({run_number})"
+
     def load_raw_data(self, as_numpy_arrays=False, normalise_by_proton_charge=False):
         def get_detector_idx_array(detector_number, image_size, idx_offset):
             total_pixels = image_size[0] * image_size[1]
@@ -149,17 +157,15 @@ class FormatISISSXD(FormatNXTOFRAW):
         self.raw_data = self.load_raw_data(as_numpy_arrays=True)
         raw_summed_data = []
         max_val = None
-        for i in self.raw_data:
-            arr = np.sum(i, axis=2)
+        for idx, i in enumerate(self.raw_data):
+            arr = np.sum(i, axis=2).T
+            if idx != 0:
+                arr = np.flipud(arr)
             arr_max_val = np.max(arr)
             if max_val is None or arr_max_val > max_val:
                 max_val = arr_max_val
             raw_summed_data.append(arr.flatten())
         return tuple([(i / max_val).tolist() for i in raw_summed_data])
-
-    def get_raw_spectra_two_theta(self):
-        detector = self.get_detector()
-        unit_s0 = self.get_beam().get_unit_s0()
 
     def _get_panel_pixel_s1(self, detector, center=True):
         def get_panel_pixels_in_mm_as_1d(flip):
