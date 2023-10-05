@@ -15,6 +15,7 @@ from dxtbx import IncorrectFormatError
 from dxtbx.format.FormatNXTOFRAW import FormatNXTOFRAW
 from dxtbx.model import Detector
 from dxtbx.model.beam import PolyBeamFactory
+from dxtbx.model.goniometer import GoniometerFactory
 from dxtbx.model.sequence import SequenceFactory
 
 
@@ -483,7 +484,9 @@ class FormatISISSXD(FormatNXTOFRAW):
         )
 
     def get_goniometer(self, idx=None):
-        return None
+        rotation_axis = (0.0, 1.0, 0.0)
+        fixed_rotation = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+        return GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
 
     def get_panel_size_in_px(self):
         return (64, 64)
