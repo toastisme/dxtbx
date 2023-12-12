@@ -89,7 +89,7 @@ class FormatISISSXD(FormatNXTOFRAW):
         nxs_file = h5py.File(output_filename, "r+")
         del nxs_file["raw_data_1"]["detector_1"]["counts"]
         nxs_file["raw_data_1/detector_1"].create_dataset(
-            "counts", spectra.shape, dtype=np.dtype("f8")
+            "counts", spectra.shape, dtype=np.dtype("f4"), compression="lzf"
         )
         nxs_file["raw_data_1/detector_1/counts"][:] = spectra
         nxs_file.close()
@@ -600,6 +600,7 @@ class FormatISISSXD(FormatNXTOFRAW):
     def get_bin_width_correction(self):
         tof_bins = self._get_time_channel_bins()
         tof_bin_widths = np.abs(np.diff(tof_bins))
+        tof_bin_widths /= np.min(tof_bin_widths)
         return tof_bin_widths
 
     def get_reflection_table_from_use_file(self, use_file, specific_panel=None):
