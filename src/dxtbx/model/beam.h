@@ -115,6 +115,27 @@ namespace dxtbx { namespace model {
       direction_ = -(unit_s0.normalize());
     }
 
+    /**
+     * Check if two models are similar
+     */
+    bool is_similar_to(const PolyBeam &rhs, double direction_tolerance) const {
+      return std::abs(angle_safe(direction_, rhs.get_sample_to_source_direction()))
+             <= direction_tolerance;
+    }
+
+    /** Check two beam models are not (almost) the same. */
+    bool operator!=(const PolyBeam &rhs) const {
+      return !(*this == rhs);
+    }
+
+    /** Check two beam models are (almost) the same */
+    bool operator==(const PolyBeam &rhs) const {
+      double eps = 1.0e-6;
+
+      return std::abs(angle_safe(direction_, rhs.get_sample_to_source_direction()))
+             <= eps;
+    }
+
   private:
     vec3<double> direction_;
     double sample_to_moderator_distance_;
