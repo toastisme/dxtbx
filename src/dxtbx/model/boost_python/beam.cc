@@ -310,6 +310,11 @@ namespace dxtbx { namespace model { namespace boost_python {
       .def("__str__", &polybeam_to_string)
       .def("to_dict", &to_dict<PolyBeam>)
       .def("from_dict", &from_dict<PolyBeam>, return_value_policy<manage_new_object>())
+      .def("__eq__", &PolyBeam::operator==)
+      .def("__ne__", &PolyBeam::operator!=)
+      .def("is_similar_to",
+           &PolyBeam::is_similar_to,
+           (arg("other"), arg("direction_tolerance") = 1e-6))
       .def_pickle(PolyBeamPickleSuite());
 
     // MonoBeam : Beam
