@@ -43,7 +43,7 @@ class FormatISISSXD(FormatNXTOFRAW):
     def understand(image_file):
         try:
             return FormatISISSXD.is_isissxd_file(image_file)
-        except IOError:
+        except (IOError, KeyError):
             return False
 
     @staticmethod
@@ -58,7 +58,9 @@ class FormatISISSXD(FormatNXTOFRAW):
 
         def get_name(image_file):
             with h5py.File(image_file, "r") as handle:
-                return handle["/raw_data_1/name"][0].decode()
+                if "raw_data_1" in handle:
+                    return handle["/raw_data_1/name"][0].decode()
+                return ""
 
         if not FormatNXTOFRAW.understand(image_file):
             return False
