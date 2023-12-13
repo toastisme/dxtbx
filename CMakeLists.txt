@@ -3,13 +3,13 @@ cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 project(dxtbx LANGUAGES C CXX)
 
 # Add the included modules
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
 # General cmake environment configuration
 include(SetDefaultBuildRelWithDebInfo) # Default builds to release with debug info
 include(AlwaysColourCompilation) # Always show coloured compiler output
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Generate compile_commands.json
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 find_package(Python REQUIRED COMPONENTS Interpreter Development)
 find_package(CCTBX COMPONENTS scitbx cctbx REQUIRED)

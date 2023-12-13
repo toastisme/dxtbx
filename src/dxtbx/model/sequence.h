@@ -295,10 +295,11 @@ k     *
       return spline;
     }
 
-    boost::math::barycentric_rational<double> get_barycentric_spline(
+    boost::math::interpolators::barycentric_rational<double> get_barycentric_spline(
       std::vector<double> x,
       std::vector<double> y) {
-      boost::math::barycentric_rational<double> spline(x.data(), y.data(), x.size());
+      boost::math::interpolators::barycentric_rational<double> spline(
+        x.data(), y.data(), x.size());
       return spline;
     }
 
@@ -440,10 +441,14 @@ k     *
     }
     scitbx::af::shared<double> tof_in_seconds_;
     scitbx::af::shared<double> wavelengths_;
-    boost::optional<boost::math::barycentric_rational<double> > wavelength_to_frame_;
-    boost::optional<boost::math::barycentric_rational<double> > tof_to_frame_;
-    boost::optional<boost::math::barycentric_rational<double> > frame_to_wavelength_;
-    boost::optional<boost::math::barycentric_rational<double> > frame_to_tof_;
+    boost::optional<boost::math::interpolators::barycentric_rational<double> >
+      wavelength_to_frame_;
+    boost::optional<boost::math::interpolators::barycentric_rational<double> >
+      tof_to_frame_;
+    boost::optional<boost::math::interpolators::barycentric_rational<double> >
+      frame_to_wavelength_;
+    boost::optional<boost::math::interpolators::barycentric_rational<double> >
+      frame_to_tof_;
   };
 
   /** A class to represent a scan */
