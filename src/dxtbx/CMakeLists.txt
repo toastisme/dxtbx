@@ -34,7 +34,7 @@ Python_add_library( dxtbx_model_ext
     model/boost_python/multi_axis_goniometer.cc
     model/boost_python/panel.cc
     model/boost_python/detector.cc
-    model/boost_python/scan.cc
+    model/boost_python/sequence.cc
     model/boost_python/scan_helpers.cc
     model/boost_python/crystal.cc
     model/boost_python/parallax_correction.cc
