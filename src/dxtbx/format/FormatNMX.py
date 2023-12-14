@@ -12,8 +12,9 @@ import cctbx.array_family.flex as flex
 import dxtbx_flumpy as flumpy
 from dxtbx import IncorrectFormatError
 from dxtbx.format.FormatHDF5 import FormatHDF5
-from dxtbx.model import Detector, Goniometer  # , PolyBeam
+from dxtbx.model import Detector  # , PolyBeam
 from dxtbx.model.beam import PolyBeamFactory
+from dxtbx.model.goniometer import GoniometerFactory
 from dxtbx.model.sequence import SequenceFactory
 
 # from typing import Tuple
@@ -41,9 +42,7 @@ class FormatNMX(FormatHDF5):
 
     @staticmethod
     def understand(image_file):
-        print("check NMX format")
         try:
-            print("understanding NMX format", FormatNMX.is_nmx_file(image_file))
             return FormatNMX.is_nmx_file(image_file)
         except (IOError, KeyError):
             return False
@@ -100,6 +99,12 @@ class FormatNMX(FormatHDF5):
         )
         nxs_file["NMX_data/detector_1/counts"][:] = spectra
         nxs_file.close()
+
+    def get_instrument_name(self):
+        return "NMX"
+
+    def get_experiment_description(self):
+        return "No description"
 
     def load_raw_data(self, as_numpy_arrays=False, normalise_by_proton_charge=True):
         def get_detector_idx_array(detector_number, image_size, idx_offset):
@@ -177,6 +182,20 @@ class FormatNMX(FormatHDF5):
 
         return tuple(raw_data)
 
+    def get_image_data_2d(self):
+        self.raw_data = self.load_raw_data(as_numpy_arrays=True)
+        raw_summed_data = []
+        max_val = None
+        for idx, i in enumerate(self.raw_data):
+            arr = np.sum(i, axis=2)
+            if idx != 0:
+                arr = np.flipud(arr)
+            arr_max_val = np.max(arr)
+            if max_val is None or arr_max_val > max_val:
+                max_val = arr_max_val
+            raw_summed_data.append(arr.flatten())
+        return tuple([(i / max_val).tolist() for i in raw_summed_data])
+
     def _get_time_channels_in_seconds(self):
         bins = self._get_time_channel_bins()
         return [(bins[i] + bins[i + 1]) * 0.5 for i in range(len(bins) - 1)]
@@ -230,7 +249,7 @@ class FormatNMX(FormatHDF5):
             self.raw_data = self.load_raw_data()
 
         time_channels = self._get_time_channels_in_usec()
-        return time_channels, list(self.raw_data[panel_idx][x : x + 1, y : y + 1, :])
+        return time_channels, list(self.raw_data[panel_idx][y : y + 1, x : x + 1, :])
 
     def get_raw_spectra_two_theta(self):
         detector = self.get_detector()
@@ -468,8 +487,13 @@ class FormatNMX(FormatHDF5):
 
         return correction
 
-    def get_goniometer(self, idx=None) -> Goniometer:
-        pass
+    def get_goniometer(self, idx=None):
+        rotation_axis = (0.0, 1.0, 0.0)
+        fixed_rotation = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+        return GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
+
+    def get_panel_size_in_px(self):
+        return (1280, 1280)
 
     #    def get_sequence(self, idx=None) -> Sequence:
     #        pass

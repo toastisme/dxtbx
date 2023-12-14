@@ -488,7 +488,15 @@ class FormatISISSXD(FormatNXTOFRAW):
     def get_goniometer(self, idx=None):
         rotation_axis = (0.0, 1.0, 0.0)
         fixed_rotation = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
-        return GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
+        goniometer = GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
+        try:
+            angle = float(self.get_experiment_description().split("w=")[1].split()[0])
+            if angle < 0:
+                angle *= -1
+            goniometer.rotate_around_origin(rotation_axis, angle)
+        except ValueError:
+            pass
+        return goniometer
 
     def get_panel_size_in_px(self):
         return (64, 64)
