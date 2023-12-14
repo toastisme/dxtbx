@@ -23,7 +23,6 @@ namespace dxtbx { namespace model { namespace boost_python {
 
   using namespace boost::python;
 
-  
   static ExperimentList *make_experiment_list(boost::python::object items) {
     ExperimentList *experiment = new ExperimentList();
 
@@ -34,7 +33,6 @@ namespace dxtbx { namespace model { namespace boost_python {
     return experiment;
   }
 
-  
   struct ExperimentListPickleSuite : boost::python::pickle_suite {
     static boost::python::tuple getinitargs(const ExperimentList &obj) {
       boost::python::list experiments;
@@ -48,10 +46,9 @@ namespace dxtbx { namespace model { namespace boost_python {
   /**
    * Return function pointers to overrides for different types
    */
-  
+
   struct experiment_list_contains_pointers {
-    typedef bool (ExperimentList::*beam_type)(
-      const boost::python::object &) const;
+    typedef bool (ExperimentList::*beam_type)(const boost::python::object &) const;
     typedef bool (ExperimentList::*detector_type)(
       const boost::shared_ptr<Detector> &) const;
     typedef bool (ExperimentList::*goniometer_type)(
@@ -89,7 +86,7 @@ namespace dxtbx { namespace model { namespace boost_python {
   /**
    * Return function pointers to overrides for different types
    */
-  
+
   struct experiment_list_replace_pointers {
     typedef void (ExperimentList::*beam_type)(boost::python::object,
                                               boost::python::object);
@@ -98,7 +95,7 @@ namespace dxtbx { namespace model { namespace boost_python {
     typedef void (ExperimentList::*goniometer_type)(boost::shared_ptr<Goniometer>,
                                                     boost::shared_ptr<Goniometer>);
     typedef void (ExperimentList::*sequence_type)(boost::python::object,
-                                              boost::python::object);
+                                                  boost::python::object);
     typedef void (ExperimentList::*crystal_type)(boost::shared_ptr<CrystalBase>,
                                                  boost::shared_ptr<CrystalBase>);
     typedef void (ExperimentList::*object_type)(boost::python::object,
@@ -132,7 +129,7 @@ namespace dxtbx { namespace model { namespace boost_python {
   /**
    * Return function pointers to overrides for different types
    */
-  
+
   struct experiment_list_indices_pointers {
     typedef scitbx::af::shared<std::size_t> (ExperimentList::*beam_type)(
       const boost::python::object &) const;
@@ -172,7 +169,6 @@ namespace dxtbx { namespace model { namespace boost_python {
     }
   };
 
-  
   void experiment_list_setitem(ExperimentList &self, int n, Experiment item) {
     if (n < 0) {
       n += self.size();
@@ -183,7 +179,6 @@ namespace dxtbx { namespace model { namespace boost_python {
     self[n] = item;
   }
 
-  
   Experiment &experiment_list_getitem(ExperimentList &self, int n) {
     if (n < 0) {
       n += self.size();
@@ -194,7 +189,6 @@ namespace dxtbx { namespace model { namespace boost_python {
     return self[n];
   }
 
-  
   ExperimentList experiment_list_getitem_slice(const ExperimentList &self, slice s) {
     scitbx::boost_python::adapted_slice as(s, self.size());
     ExperimentList result;
@@ -204,7 +198,6 @@ namespace dxtbx { namespace model { namespace boost_python {
     return result;
   }
 
-  
   void experiment_list_delitem(ExperimentList &self, int n) {
     if (n < 0) {
       n += self.size();
@@ -216,7 +209,7 @@ namespace dxtbx { namespace model { namespace boost_python {
   }
 
   void export_experiment_list() {
-    class_<ExperimentList >("ExperimentList")
+    class_<ExperimentList>("ExperimentList")
       .def("__init__", make_constructor(&make_experiment_list, default_call_policies()))
       .def("identifiers", &ExperimentList::identifiers)
       .def("find", &ExperimentList::find)
@@ -265,8 +258,8 @@ namespace dxtbx { namespace model { namespace boost_python {
       .def("__len__", &ExperimentList::size)
       .def("contains_tof_experiments", &ExperimentList::contains_tof_experiments)
       .def("is_single_tof_experiment", &ExperimentList::is_single_tof_experiment)
+      .def("all_tof_experiments", &ExperimentList::all_tof_experiments)
       .def_pickle(ExperimentListPickleSuite());
-   
   }
 
 }}}  // namespace dxtbx::model::boost_python

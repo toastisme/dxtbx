@@ -29,8 +29,8 @@ namespace dxtbx { namespace model {
    */
   class ExperimentList {
   public:
-    typedef scitbx::af::shared<Experiment > shared_type;
-    typedef scitbx::af::const_ref<Experiment > const_ref_type;
+    typedef scitbx::af::shared<Experiment> shared_type;
+    typedef scitbx::af::const_ref<Experiment> const_ref_type;
     typedef typename shared_type::const_iterator const_iterator;
     typedef typename shared_type::iterator iterator;
 
@@ -417,7 +417,8 @@ namespace dxtbx { namespace model {
     /**
      * Get indices which have this model
      */
-    scitbx::af::shared<std::size_t> indices_sequence(const boost::python::object &obj) const {
+    scitbx::af::shared<std::size_t> indices_sequence(
+      const boost::python::object &obj) const {
       scitbx::af::shared<std::size_t> result;
       for (std::size_t i = 0; i < size(); ++i) {
         if (data_[i].get_sequence() == obj) {
@@ -441,17 +442,19 @@ namespace dxtbx { namespace model {
       return result;
     }
 
-    bool is_sequence(boost::python::object obj) const{
-      std::string obj_type = boost::python::extract<std::string>(obj.attr("__class__").attr("__name__"));
-      if (obj_type == "Scan" || obj_type == "TOFSequence" || obj_type == "Sequence"){
+    bool is_sequence(boost::python::object obj) const {
+      std::string obj_type =
+        boost::python::extract<std::string>(obj.attr("__class__").attr("__name__"));
+      if (obj_type == "Scan" || obj_type == "TOFSequence" || obj_type == "Sequence") {
         return true;
       }
       return false;
     }
 
-    bool is_beam(boost::python::object obj) const{
-      std::string obj_type = boost::python::extract<std::string>(obj.attr("__class__").attr("__name__"));
-      if (obj_type == "MonoBeam" || obj_type == "PolyBeam"){
+    bool is_beam(boost::python::object obj) const {
+      std::string obj_type =
+        boost::python::extract<std::string>(obj.attr("__class__").attr("__name__"));
+      if (obj_type == "MonoBeam" || obj_type == "PolyBeam") {
         return true;
       }
       return false;
@@ -552,9 +555,9 @@ namespace dxtbx { namespace model {
     /**
      * Returns true if any experiments represent ToF experiments
      */
-    bool contains_tof_experiments() const{
-      for(std::size_t i = 0; i < size(); ++i){
-        if (data_[i].is_tof_experiment()){
+    bool contains_tof_experiments() const {
+      for (std::size_t i = 0; i < size(); ++i) {
+        if (data_[i].is_tof_experiment()) {
           return true;
         }
       }
@@ -564,11 +567,23 @@ namespace dxtbx { namespace model {
     /**
      *  Returns true if experiments are a single ToF experiment
      */
-    bool is_single_tof_experiment() const{
-      if (size() != 1){
+    bool is_single_tof_experiment() const {
+      if (size() != 1) {
         return false;
       }
       return data_[0].is_tof_experiment();
+    }
+
+    /**
+     *  Returns true if all experiments are a ToF experiment
+     */
+    bool all_tof_experiments() const {
+      for (std::size_t i = 0; i < size(); ++i) {
+        if (!data_[i].is_tof_experiment()) {
+          return false;
+        }
+      }
+      return true;
     }
 
   protected:
