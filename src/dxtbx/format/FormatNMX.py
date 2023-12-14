@@ -490,7 +490,15 @@ class FormatNMX(FormatHDF5):
     def get_goniometer(self, idx=None):
         rotation_axis = (0.0, 1.0, 0.0)
         fixed_rotation = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
-        return GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
+        goniometer = GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
+        angles = self.get_gonoimeter_orientations()  # angles in deg along x, y, z
+        axes = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
+        for idx, angle in enumerate(angles):
+            goniometer.rotate_around_origin(axes[idx], angle)
+        return goniometer
+
+    def get_gonoimeter_orientations(self):
+        return self.nxs_file["NMX_data/crystal_orientation"][...]
 
     def get_panel_size_in_px(self):
         return (1280, 1280)
