@@ -494,7 +494,7 @@ class FormatNMX(FormatHDF5):
         angles = self.get_gonoimeter_orientations()  # angles in deg along x, y, z
         axes = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
         for idx, angle in enumerate(angles):
-            goniometer.rotate_around_origin(axes[idx], angle)
+            goniometer.rotate_around_origin(axes[idx], -angle)
         return goniometer
 
     def get_gonoimeter_orientations(self):
