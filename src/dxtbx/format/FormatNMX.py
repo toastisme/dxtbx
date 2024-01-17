@@ -203,13 +203,9 @@ class FormatNMX(FormatHDF5):
     def _get_time_channel_bins(self):
         return self.nxs_file["NMX_data"]["detector_1"]["t_bin"][:]
 
-    # def _get_time_channels_in_seconds(self):
-    # bins = self._get_time_channel_bins()
-    # return [(bins[i] + bins[i + 1]) * 0.5 * 10**-6 for i in range(len(bins) - 1)]
-
     def _get_time_channels_in_usec(self):
         bins = self._get_time_channel_bins()
-        return [(bins[i] + bins[i + 1]) * 0.5 for i in range(len(bins) - 1)]
+        return [(bins[i] + bins[i + 1]) * 0.5 * 10**6 for i in range(len(bins) - 1)]
 
     def get_tof_in_seconds(self):
         return self._get_time_channels_in_seconds()
@@ -491,7 +487,10 @@ class FormatNMX(FormatHDF5):
         rotation_axis = (0.0, 1.0, 0.0)
         fixed_rotation = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
         goniometer = GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
-        angles = self.get_gonoimeter_orientations()  # angles in deg along x, y, z
+        try:
+            angles = self.get_gonoimeter_orientations()  # angles in deg along x, y, z
+        except KeyError:
+            return goniometer
         axes = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
         for idx, angle in enumerate(angles):
             goniometer.rotate_around_origin(axes[idx], -angle)

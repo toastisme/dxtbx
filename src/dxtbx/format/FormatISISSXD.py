@@ -494,7 +494,7 @@ class FormatISISSXD(FormatNXTOFRAW):
             if angle < 0:
                 angle *= -1
             goniometer.rotate_around_origin(rotation_axis, angle)
-        except ValueError:
+        except (ValueError, IndexError):
             pass
         return goniometer
 
