@@ -558,7 +558,7 @@ class FormatISISSXD(FormatNXTOFRAW):
             self.raw_data = self.load_raw_data()
 
         time_channels = self._get_time_channels_in_usec()
-        return time_channels, list(self.raw_data[panel_idx][x : x + 1, y : y + 1, :])
+        return time_channels, list(self.raw_data[panel_idx][x, y, :])
 
     def _get_panel_projections_2d(self) -> dict:
 
