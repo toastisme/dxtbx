@@ -70,14 +70,12 @@ class FormatMANDI(FormatHDF5):
         num_tof_bins = len(self._get_time_channel_bins()) - 1
         if index is None:
             for panel_name in self._get_panel_names():
-                if panel_name not in ["bank40", "bank49", "bank50"]:
-                    continue
                 spectra = np.reshape(
                     self.nxs_file[self._base_entry][f"{panel_name}_events"]["spectra"][
                         :, :
                     ],
                     (panel_size[0], panel_size[1], num_tof_bins),
-                )
+                ).T
                 if as_numpy_arrays:
                     raw_data.append(spectra)
                 else:
@@ -86,14 +84,12 @@ class FormatMANDI(FormatHDF5):
             return tuple(raw_data)
         else:
             for panel_name in self._get_panel_names():
-                if panel_name not in ["bank40", "bank49", "bank50"]:
-                    continue
                 spectra = np.reshape(
                     self.nxs_file[self._base_entry][f"{panel_name}_events"]["spectra"][
                         :, index : index + 1
                     ],
                     panel_size,
-                )
+                ).T
                 if as_numpy_arrays:
                     raw_data.append(spectra)
                 else:
@@ -123,9 +119,6 @@ class FormatMANDI(FormatHDF5):
         root = detector.hierarchy()
 
         for i in range(num_panels):
-            panel_name = panel_names[i]
-            if panel_name not in ["bank40", "bank49", "bank50"]:
-                continue
             panel = root.add_panel()
             panel.set_type(panel_type)
             panel.set_name(panel_names[i])
@@ -410,14 +403,12 @@ class FormatMANDI(FormatHDF5):
     def get_goniometer(self, idx=None):
         return None
 
-    def get_image_data_2d(self):
+    def get_image_data_2d(self, scale_data=True):
         raw_summed_data = []
         max_val = None
         panel_size = self._get_panel_size_in_px()
         num_tof_bins = len(self._get_time_channel_bins()) - 1
         for panel_name in self._get_panel_names():
-            if panel_name not in ["bank40", "bank49", "bank50"]:
-                continue
             arr = np.sum(
                 np.reshape(
                     self.nxs_file[self._base_entry][f"{panel_name}_events"]["spectra"][
@@ -431,7 +422,9 @@ class FormatMANDI(FormatHDF5):
             if max_val is None or arr_max_val > max_val:
                 max_val = arr_max_val
             raw_summed_data.append(arr.flatten())
-        return tuple([(i / max_val).tolist() for i in raw_summed_data])
+        if scale_data:
+            return tuple([(i / max_val).tolist() for i in raw_summed_data])
+        return np.array(raw_summed_data)
 
     def _get_panel_size_in_px(self):
         return (256, 256)
@@ -524,29 +517,21 @@ class FormatMANDI(FormatHDF5):
 
         ## Get panel data
         panel_number = FormatMANDI.get_panel_number(panel_name)
-        # Event id array idxs that were triggered after every pulse
-        event_index = nxs_file[f"entry/{panel_name}/event_index"][:]
         # Actual pixel ids, starting from bottom left and going up y axis first
         event_id = nxs_file[f"entry/{panel_name}/event_id"][:]
-        # Time of each pulse (usec)
-        event_time_zero = nxs_file[f"entry/{panel_name}/event_time_zero"][:]
-        # Time each event_id was triggered after event_time_zero (usec)
+        # Time each event_id was triggered after event_time_zero (sec)
         event_time_offset = nxs_file[f"entry/{panel_name}/event_time_offset"][:]
 
-        # event_index range is one more than event_id, so truncate
-        event_index = event_index[event_index < event_id.shape[0]]
-
         # event_ids are given with an offset
-        event_id_offset = panel_number * panel_size[0] * panel_size[1] - 1
-        corrected_event_id = event_id[event_index] - event_id_offset
-        event_time = (
-            event_time_zero[event_index] + event_time_offset[corrected_event_id]
-        )
+        event_id_offset = panel_number * panel_size[0] * panel_size[1]
+        corrected_event_id = event_id - event_id_offset
 
         # Generate histograms
         spectra = []
         for i in range(panel_size[0] * panel_size[1]):
-            h, edges = np.histogram(event_time[corrected_event_id == i], tof_bins)
+            h, edges = np.histogram(
+                event_time_offset[corrected_event_id == i], tof_bins
+            )
             spectra.append(h)
 
         return np.array(spectra, dtype=np.int32), np.array(edges)
