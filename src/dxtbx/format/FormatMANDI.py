@@ -11,6 +11,7 @@ from dxtbx import IncorrectFormatError
 from dxtbx.format.FormatHDF5 import FormatHDF5
 from dxtbx.model import Detector
 from dxtbx.model.beam import PolyBeamFactory
+from dxtbx.model.goniometer import GoniometerFactory
 from dxtbx.model.sequence import SequenceFactory
 
 
@@ -160,7 +161,7 @@ class FormatMANDI(FormatHDF5):
 
     def get_experiment_description(self):
         title = self.nxs_file["entry"]["experiment_title"][0].decode()
-        run_number = self.nxs_file["entry"]["experiment_identifier"][0].decode()
+        run_number = self.nxs_file["entry"]["entry_identifier"][0].decode()
         return f"{title} ({run_number})"
 
     def _get_sample_to_moderator_distance(self):
@@ -401,6 +402,15 @@ class FormatMANDI(FormatHDF5):
         )
 
     def get_goniometer(self, idx=None):
+        rotation_axis = (0.0, 1.0, 0.0)
+        fixed_rotation = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+        goniometer = GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
+        try:
+            phi = self.nxs_file["entry/DASlogs/phi/average_value"][0]
+            goniometer.rotate_around_origin(rotation_axis, phi)
+        except (ValueError, IndexError):
+            pass
+        return goniometer
         return None
 
     def get_image_data_2d(self, scale_data=True):
