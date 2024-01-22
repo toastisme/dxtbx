@@ -156,7 +156,7 @@ class FormatISISSXD(FormatNXTOFRAW):
             raw_data_idx.append(arr)
         return tuple(raw_data_idx)
 
-    def get_image_data_2d(self):
+    def get_image_data_2d(self, scale_data=True):
         self.raw_data = self.load_raw_data(as_numpy_arrays=True)
         raw_summed_data = []
         max_val = None
@@ -168,7 +168,9 @@ class FormatISISSXD(FormatNXTOFRAW):
             if max_val is None or arr_max_val > max_val:
                 max_val = arr_max_val
             raw_summed_data.append(arr.flatten())
-        return tuple([(i / max_val).tolist() for i in raw_summed_data])
+        if scale_data:
+            return tuple([(i / max_val).tolist() for i in raw_summed_data])
+        return np.array(raw_summed_data)
 
     def _get_panel_pixel_s1(self, detector, center=True):
         def get_panel_pixels_in_mm_as_1d(flip):
@@ -555,7 +557,7 @@ class FormatISISSXD(FormatNXTOFRAW):
 
     def get_pixel_spectra(self, panel_idx, x, y):
         if self.raw_data is None:
-            self.raw_data = self.load_raw_data()
+            self.raw_data = self.load_raw_data(as_numpy_arrays=True)
 
         time_channels = self._get_time_channels_in_usec()
         return time_channels, list(self.raw_data[panel_idx][x, y, :])
