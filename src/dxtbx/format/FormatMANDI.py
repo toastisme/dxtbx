@@ -352,11 +352,8 @@ class FormatMANDI(FormatHDF5):
             (0.8005222527712781, 0.587343547301513, 0.11912883891515713),
         )
 
-    def _get_unit_s0(self):
-        return (0, 0, 1)
-
     def _get_sample_to_source_direction(self):
-        return (0, 0, 1)
+        return (0, 0, -1)
 
     def _get_beam_polarization_normal(self):
         return (0, 0, 0)

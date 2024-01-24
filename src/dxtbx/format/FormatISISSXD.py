@@ -556,11 +556,19 @@ class FormatISISSXD(FormatNXTOFRAW):
         return len(self.get_tof_in_seconds()) - 1
 
     def get_pixel_spectra(self, panel_idx, x, y):
-        if self.raw_data is None:
-            self.raw_data = self.load_raw_data(as_numpy_arrays=True)
 
         time_channels = self._get_time_channels_in_usec()
-        return time_channels, list(self.raw_data[panel_idx][x, y, :])
+        panel_size = self._get_panel_size_in_px()
+        height = panel_size[1]
+        total_pixels = panel_size[0] * panel_size[1]
+        # Panel positions are offset by 4 in raw_data array
+        # See p24 of https://www.isis.stfc.ac.uk/Pages/sxd-user-guide6683.pdf
+        idx_offset = 4
+        idx = (panel_idx * total_pixels) + (panel_idx * idx_offset) + y * height + x
+        return (
+            time_channels,
+            self.nxs_file["raw_data_1/detector_1/counts"][0, idx, :].tolist(),
+        )
 
     def _get_panel_projections_2d(self) -> dict:
 
