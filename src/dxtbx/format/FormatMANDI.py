@@ -399,16 +399,22 @@ class FormatMANDI(FormatHDF5):
         )
 
     def get_goniometer(self, idx=None):
-        rotation_axis = (0.0, 1.0, 0.0)
+        rotation_axis_phi = (0.0, 1.0, 0.0)
+        rotation_axis_omega = (0.0, 1.0, 0.0)
+        rotation_axis_chi = (0.0, 0.0, 1.0)
         fixed_rotation = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
-        goniometer = GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
-        try:
-            phi = self.nxs_file["entry/DASlogs/phi/average_value"][0]
-            goniometer.rotate_around_origin(rotation_axis, phi)
-        except (ValueError, IndexError):
-            pass
+
+        goniometer = GoniometerFactory.make_goniometer(
+            rotation_axis_phi, fixed_rotation
+        )
+        phi = self.nxs_file["entry/DASlogs/phi/average_value"][0]
+        omega = self.nxs_file["entry/DASlogs/omega/average_value"][0]
+        chi = self.nxs_file["entry/DASlogs/chi/average_value"][0]
+
+        goniometer.rotate_around_origin(rotation_axis_phi, phi)
+        goniometer.rotate_around_origin(rotation_axis_chi, chi)
+        goniometer.rotate_around_origin(rotation_axis_omega, omega)
         return goniometer
-        return None
 
     def get_image_data_2d(self, scale_data=True):
         raw_summed_data = []
