@@ -162,79 +162,42 @@ class DataBlock:
             if isinstance(iset, dxtbx.imageset.ImageSequence):
                 if iset.reader().is_single_file_reader():
                     result["imageset"].append(
-                        dict(
-                            [
-                                ("__id__", "ImageSequence"),
-                                (
-                                    "master",
-                                    os.path.abspath(iset.reader().master_path()),
-                                ),
-                                (
-                                    "mask",
-                                    abspath_or_none(iset.external_lookup.mask.filename),
-                                ),
-                                (
-                                    "gain",
-                                    abspath_or_none(iset.external_lookup.gain.filename),
-                                ),
-                                (
-                                    "pedestal",
-                                    abspath_or_none(
-                                        iset.external_lookup.pedestal.filename
-                                    ),
-                                ),
-                                (
-                                    "dx",
-                                    abspath_or_none(iset.external_lookup.dx.filename),
-                                ),
-                                (
-                                    "dy",
-                                    abspath_or_none(iset.external_lookup.dy.filename),
-                                ),
-                                ("beam", b.index(iset.get_beam())),
-                                ("detector", d.index(iset.get_detector())),
-                                ("goniometer", g.index(iset.get_goniometer())),
-                                ("sequence", s.index(iset.get_sequence())),
-                                ("images", list(iset.indices())),
-                                ("params", iset.params()),
-                            ]
-                        )
+                        {
+                            "__id__": "ImageSequence",
+                            "master": os.path.abspath(iset.reader().master_path()),
+                            "mask": abspath_or_none(iset.external_lookup.mask.filename),
+                            "gain": abspath_or_none(iset.external_lookup.gain.filename),
+                            "pedestal": abspath_or_none(
+                                iset.external_lookup.pedestal.filename
+                            ),
+                            "dx": abspath_or_none(iset.external_lookup.dx.filename),
+                            "dy": abspath_or_none(iset.external_lookup.dy.filename),
+                            "beam": b.index(iset.get_beam()),
+                            "detector": d.index(iset.get_detector()),
+                            "goniometer": g.index(iset.get_goniometer()),
+                            "sequence": s.index(iset.get_sequence()),
+                            "images": list(iset.indices()),
+                            "params": iset.params(),
+                        }
                     )
                 else:
                     result["imageset"].append(
-                        dict(
-                            [
-                                ("__id__", "ImageSequence"),
-                                ("template", os.path.abspath(iset.get_template())),
-                                (
-                                    "mask",
-                                    abspath_or_none(iset.external_lookup.mask.filename),
-                                ),
-                                (
-                                    "gain",
-                                    abspath_or_none(iset.external_lookup.gain.filename),
-                                ),
-                                (
-                                    "pedestal",
-                                    abspath_or_none(
-                                        iset.external_lookup.pedestal.filename
-                                    ),
-                                ),
-                                (
-                                    "dx",
-                                    abspath_or_none(iset.external_lookup.dx.filename),
-                                ),
-                                (
-                                    "dy",
-                                    abspath_or_none(iset.external_lookup.dy.filename),
-                                ),
-                                ("beam", b.index(iset.get_beam())),
-                                ("detector", d.index(iset.get_detector())),
-                                ("goniometer", g.index(iset.get_goniometer())),
-                                ("sequence", s.index(iset.get_sequence())),
-                                ("params", iset.params()),
-                            ]
-                        )
+                        {
+                            "__id__": "ImageSequence",
+                            "template": os.path.abspath(iset.get_template()),
+                            "mask": abspath_or_none(iset.external_lookup.mask.filename),
+                            "gain": abspath_or_none(iset.external_lookup.gain.filename),
+                            "pedestal": abspath_or_none(
+                                iset.external_lookup.pedestal.filename
+                            ),
+                            "dx": abspath_or_none(iset.external_lookup.dx.filename),
+                            "dy": abspath_or_none(iset.external_lookup.dy.filename),
+                            "beam": b.index(iset.get_beam()),
+                            "detector": d.index(iset.get_detector()),
+                            "goniometer": g.index(iset.get_goniometer()),
+                            "sequence": s.index(iset.get_sequence()),
+                            "params": iset.params(),
+                        }
                     )
             else:
                 imageset = {}
@@ -869,13 +832,15 @@ class BeamComparison:
     def __call__(self, a, b):
         if a is None and b is None:
             return True
-        return a.is_similar_to(
-            b,
-            wavelength_tolerance=self.wavelength_tolerance,
-            direction_tolerance=self.direction_tolerance,
-            polarization_normal_tolerance=self.polarization_normal_tolerance,
-            polarization_fraction_tolerance=self.polarization_fraction_tolerance,
-        )
+        if not isinstance(a, dxtbx.model.PolyBeam):
+            return a.is_similar_to(
+                b,
+                wavelength_tolerance=self.wavelength_tolerance,
+                direction_tolerance=self.direction_tolerance,
+                polarization_normal_tolerance=self.polarization_normal_tolerance,
+                polarization_fraction_tolerance=self.polarization_fraction_tolerance,
+            )
+        return a.is_similar_to(b)
 
 
 class DetectorComparison:

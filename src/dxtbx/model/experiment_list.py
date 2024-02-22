@@ -40,6 +40,7 @@ from dxtbx.model import (
     ProfileModelFactory,
     Scan,
     SequenceFactory,
+    TOFSequence,
 )
 from dxtbx.sequence_filenames import (
     locate_files_matching_template_string,
@@ -628,7 +629,25 @@ class ExperimentListFactory:
 
         # Treat each format as a separate datablock
         for format_class, records in format_groups.items():
-            if issubclass(format_class, FormatMultiImage):
+            if issubclass(format_class, FormatMultiImage) and not isinstance(
+                records[0].get_sequence(), TOFSequence
+            ):
+                for imageset in records:
+                    experiments.extend(
+                        ExperimentListFactory.from_imageset_and_crystal(
+                            imageset, crystal=None, load_models=load_models
+                        )
+                    )
+                continue
+
+            if isinstance(records[0].get_sequence(), TOFSequence):
+                # Merge any consecutive and identical metadata together
+                _merge_sequence_model_metadata(
+                    records,
+                    compare_beam=compare_beam,
+                    compare_detector=compare_detector,
+                    compare_goniometer=compare_goniometer,
+                )
                 for imageset in records:
                     experiments.extend(
                         ExperimentListFactory.from_imageset_and_crystal(
@@ -1048,7 +1067,7 @@ class ImageMetadataRecord:
 
         return record_altered
 
-    @classmethod
+    # @classmethod
     def from_format(cls, fmt: Format) -> Any:
         """
         Read metadata information from a Format instance.
@@ -1199,6 +1218,42 @@ def _openingpathiterator(pathnames: Iterable[str]):
                 logger.debug("Could not import %s: %s", pathname, os.strerror(e.errno))
 
         yield pathname
+
+
+def _merge_sequence_model_metadata(
+    records: Iterable[ImageSequence],
+    compare_beam: Callable | None = None,
+    compare_detector: Callable | None = None,
+    compare_goniometer: Callable | None = None,
+):
+    record_altered = False
+    for prev, record in _iterate_with_previous(records):
+        if prev is None:
+            continue
+
+        record_altered = False
+        record_beam = record.get_beam()
+        record_detector = record.get_detector()
+        record_goniometer = record.get_goniometer()
+        prev_beam = prev.get_beam()
+        prev_detector = prev.get_detector()
+        prev_goniometer = prev.get_goniometer()
+
+        if record_beam is not prev_beam and compare_beam(record_beam, prev_beam):
+            record.set_beam(prev_beam)
+            record_altered = True
+        if record_detector is not prev_detector and compare_detector(
+            record_detector, prev_detector
+        ):
+            record.set_detector(prev_detector)
+            record_altered = True
+        if record_goniometer is not prev_goniometer and compare_goniometer(
+            record_goniometer, prev_goniometer
+        ):
+            record.set_goniometer(prev_goniometer)
+            record_altered = True
+
+    return record_altered
 
 
 def _merge_model_metadata(
@@ -1371,7 +1426,6 @@ def _create_imageset(
 
 
 def _create_imagesequence(record, format_class, format_kwargs=None):
-    # type: (ImageMetadataRecord, Type[Format], Dict) -> dxtbx.imageset.ImageSequence
     """
     Create an ImageSequence object from a single rotation data image.
 
