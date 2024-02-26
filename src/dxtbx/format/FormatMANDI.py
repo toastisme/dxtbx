@@ -479,11 +479,37 @@ class FormatMANDI(FormatHDF5):
         return panel_pos
 
     @staticmethod
+    def add_histogram_data_to_nxs_file(
+        nxs_file_path,
+        remove_event_data,
+        spectra_output_name="spectra",
+        write_tof_bins=True,
+        delta_tof=5,  # (usec)
+        tof_padding=100,  # (usec)
+        panel_size=(256, 256),
+    ):  # (px)
+
+        tof_bins = FormatMANDI.get_tof_bins(
+            nxs_file=nxs_file_path,
+            panel_size=panel_size,
+            delta_tof=delta_tof,
+            padding=tof_padding,
+        )
+        FormatMANDI.write_histogram_data(
+            nxs_file_path=nxs_file_path,
+            tof_bins=tof_bins,
+            panel_size=panel_size,
+            remove_event_data=remove_event_data,
+            spectra_output_name=spectra_output_name,
+            write_tof_bins=write_tof_bins,
+        )
+
+    @staticmethod
     def write_histogram_data(
         nxs_file_path,
         tof_bins,
         panel_size,
-        remove_event_data=True,
+        remove_event_data,
         spectra_output_name="spectra",
         write_tof_bins=True,
     ):
@@ -498,25 +524,29 @@ class FormatMANDI(FormatHDF5):
             del nxs_file[join(join(base_dir, panel_name), "event_time_zero")]
             del nxs_file[join(join(base_dir, panel_name), "event_time_offset")]
 
+        print(f"Writing histrogram data in {nxs_file_path}")
+        print(f"Remove event data: {remove_event_data}")
         nxs_file = h5py.File(nxs_file_path, "r+")
         base_dir = list(nxs_file.keys())[0]
 
         panel_names = FormatMANDI.get_panel_names(nxs_file)
         written_tof_bins = False
         for panel_name in panel_names:
-            print(panel_name)
+            print(f"Processing panel {panel_name}")
             output_path = join(base_dir, panel_name)
             output_path = join(output_path, spectra_output_name)
+            print(f"Writing spectra to {output_path}")
             panel_spectra, bin_edges = FormatMANDI.generate_histogram_data_for_panel(
                 nxs_file, tof_bins, panel_size, panel_name
             )
             nxs_file.create_dataset(output_path, data=panel_spectra, compression="gzip")
             if remove_event_data:
                 delete_event_data(nxs_file, base_dir, panel_name)
+                print(f"Removed event data for {panel_name}")
             if write_tof_bins and not written_tof_bins:
-                nxs_file.create_dataset(
-                    join(base_dir, "time_of_flight"), data=bin_edges, compression="gzip"
-                )
+                tof_path = join(base_dir, "time_of_flight")
+                print(f"Writing time of flight bins to {tof_path}")
+                nxs_file.create_dataset(tof_path, data=bin_edges, compression="gzip")
                 written_tof_bins = True
 
         nxs_file.close()
@@ -633,6 +663,9 @@ class FormatMANDI(FormatHDF5):
         min_tof, max_tof = FormatMANDI.get_time_range_for_dataset(nxs_file, panel_size)
         min_tof = min_tof - padding
         max_tof = max_tof + padding
+        print(
+            f"Time of flight range for {nxs_file}: {round(min_tof,3)} - {round(max_tof,3)} (usec)"
+        )
         num_bins = int((max_tof - min_tof) / delta_tof)
         return np.linspace(min_tof, max_tof, num_bins)
 
