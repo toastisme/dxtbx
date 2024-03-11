@@ -46,19 +46,18 @@ class FormatMANDI(FormatHDF5):
             return False
 
     @staticmethod
-    def is_mandi_file(image_file):
-
-        """
-        Confirms if image_file is a NXTOFRAW format
-        and from the SXD by confirming required fields
-        are present and then checking the name attribute
-
-        """
-
-        def get_name(image_file):
+    def is_mandi_file(image_file: str) -> bool:
+        def get_name(image_file: str) -> str:
             with h5py.File(image_file, "r") as handle:
+                if len(handle) == 0:
+                    return ""
                 base_entry = list(handle.keys())[0]
-                return handle[f"{base_entry}/instrument/name"][0].decode()
+                if f"{base_entry}/instrument/name" not in handle:
+                    return ""
+                try:
+                    return handle[f"{base_entry}/instrument/name"][0].decode()
+                except (ValueError, IndexError):
+                    return ""
 
         return get_name(image_file) == "MANDI"
 
