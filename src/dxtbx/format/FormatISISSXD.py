@@ -492,9 +492,22 @@ class FormatISISSXD(FormatNXTOFRAW):
         fixed_rotation = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
         goniometer = GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
         try:
-            angle = float(self.get_experiment_description().split("w=")[1].split()[0])
-            if angle < 0:
-                angle *= -1
+            experiment_description = self.get_experiment_description()
+            print(experiment_description)
+            if "w=" in experiment_description:
+                angle = float(
+                    self.get_experiment_description().split("w=")[1].split()[0]
+                )
+            elif "wccr" in experiment_description:
+                angle = float(
+                    self.get_experiment_description().split("wccr=")[1].split()[0]
+                )
+            elif "wtl" in experiment_description:
+                angle = float(
+                    self.get_experiment_description().split("wccr=")[1].split()[0]
+                )
+            else:
+                return goniometer
             goniometer.rotate_around_origin(rotation_axis, angle)
         except (ValueError, IndexError):
             pass
