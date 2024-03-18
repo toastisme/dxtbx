@@ -493,7 +493,6 @@ class FormatISISSXD(FormatNXTOFRAW):
         goniometer = GoniometerFactory.make_goniometer(rotation_axis, fixed_rotation)
         try:
             experiment_description = self.get_experiment_description()
-            print(experiment_description)
             if "w=" in experiment_description:
                 angle = float(
                     self.get_experiment_description().split("w=")[1].split()[0]
