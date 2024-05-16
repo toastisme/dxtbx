@@ -6,6 +6,8 @@ from sys import argv
 import h5py
 import numpy as np
 
+from scitbx import matrix
+
 import dxtbx_flumpy as flumpy
 from dxtbx import IncorrectFormatError
 from dxtbx.format.FormatHDF5 import FormatHDF5
@@ -398,21 +400,29 @@ class FormatMANDI(FormatHDF5):
         )
 
     def get_goniometer(self, idx=None):
-        rotation_axis_phi = (0.0, 1.0, 0.0)
-        rotation_axis_omega = (0.0, 1.0, 0.0)
-        rotation_axis_chi = (0.0, 0.0, 1.0)
-        fixed_rotation = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
-
-        goniometer = GoniometerFactory.make_goniometer(
-            rotation_axis_phi, fixed_rotation
-        )
         phi = self.nxs_file["entry/DASlogs/phi/average_value"][0]
         omega = self.nxs_file["entry/DASlogs/omega/average_value"][0]
         chi = self.nxs_file["entry/DASlogs/chi/average_value"][0]
 
-        goniometer.rotate_around_origin(rotation_axis_phi, phi)
-        goniometer.rotate_around_origin(rotation_axis_chi, chi)
-        goniometer.rotate_around_origin(rotation_axis_omega, omega)
+        x = matrix.col((1.0, 0.0, 0.0))
+        y = matrix.col((0.0, 1.0, 0.0))
+        z = matrix.col((0.0, 0.0, 1.0))
+
+        x = x.rotate_around_origin(y, omega, deg=True)
+        y = y.rotate_around_origin(y, omega, deg=True)
+        z = z.rotate_around_origin(y, omega, deg=True)
+
+        x = x.rotate_around_origin(z, chi, deg=True)
+        y = y.rotate_around_origin(z, chi, deg=True)
+        z = z.rotate_around_origin(z, chi, deg=True)
+
+        x = x.rotate_around_origin(y, phi, deg=True)
+        y = y.rotate_around_origin(y, phi, deg=True)
+        z = z.rotate_around_origin(y, phi, deg=True)
+
+        fixed_rotation = (x[0], x[1], x[2], y[0], y[1], y[2], z[0], z[1], z[2])
+
+        goniometer = GoniometerFactory.make_goniometer(tuple(y), fixed_rotation)
         return goniometer
 
     def get_image_data_2d(self, scale_data=True):
@@ -445,7 +455,7 @@ class FormatMANDI(FormatHDF5):
         return (256, 256)
 
     def _get_panel_pixel_size_in_mm(self):
-        return (0.621, 0.618)
+        return (0.618, 0.618)
 
     def _get_panel_size_in_mm(self):
         size_in_px = self._get_panel_size_in_px()
