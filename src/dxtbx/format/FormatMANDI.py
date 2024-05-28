@@ -496,6 +496,8 @@ class FormatMANDI(FormatHDF5):
         delta_tof=5,  # (usec)
         tof_padding=100,  # (usec)
         panel_size=(256, 256),
+        min_tof=None,
+        max_tof=None,
     ):  # (px)
 
         tof_bins = FormatMANDI.get_tof_bins(
@@ -503,6 +505,8 @@ class FormatMANDI(FormatHDF5):
             panel_size=panel_size,
             delta_tof=delta_tof,
             padding=tof_padding,
+            min_tof=min_tof,
+            max_tof=max_tof,
         )
         FormatMANDI.write_histogram_data(
             nxs_file_path=nxs_file_path,
@@ -662,16 +666,21 @@ class FormatMANDI(FormatHDF5):
         return min_tof, max_tof
 
     @staticmethod
-    def get_tof_bins(nxs_file, panel_size, delta_tof=5, padding=100):
+    def get_tof_bins(
+        nxs_file, panel_size, delta_tof=5, padding=100, min_tof=None, max_tof=None
+    ):
 
         """
         delta_tof: float (usec)
         padding: float (usec)
         """
 
-        min_tof, max_tof = FormatMANDI.get_time_range_for_dataset(nxs_file, panel_size)
-        min_tof = min_tof - padding
-        max_tof = max_tof + padding
+        if min_tof is None or max_tof is None:
+            min_tof, max_tof = FormatMANDI.get_time_range_for_dataset(
+                nxs_file, panel_size
+            )
+            min_tof = min_tof - padding
+            max_tof = max_tof + padding
         print(
             f"Time of flight range for {nxs_file}: {round(min_tof,3)} - {round(max_tof,3)} (usec)"
         )
